@@ -340,6 +340,16 @@ const DetailPanel: React.FC = () => {
       case 'endNode':
         return (
           <>
+            <div className="bg-red-50 p-3 mb-4 rounded-md border border-red-200">
+              <h3 className="font-medium text-red-800 flex items-center">
+                <span className="mr-2 bg-red-500 text-white px-2 py-0.5 text-xs rounded-full">END</span>
+                Terminal Node Configuration
+              </h3>
+              <p className="text-xs text-gray-700 mt-1">
+                END nodes mark successful graph termination and format the final output.
+              </p>
+            </div>
+          
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Output Format</label>
               <Controller
@@ -348,7 +358,7 @@ const DetailPanel: React.FC = () => {
                 render={({ field }) => (
                   <select
                     {...field}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     onBlur={(e) => {
                       field.onBlur();
                       handleFieldBlur('outputFormat', e.target.value);
@@ -360,6 +370,12 @@ const DetailPanel: React.FC = () => {
                   </select>
                 )}
               />
+              {errors.outputFormat && (
+                <span className="text-red-500 text-xs">{errors.outputFormat.message as string}</span>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Determines how the final output is formatted when the graph completes.
+              </p>
             </div>
             
             <div>
@@ -370,11 +386,38 @@ const DetailPanel: React.FC = () => {
                 render={({ field }) => (
                   <textarea
                     {...field}
+                    placeholder="Optional transformation to apply to the final output"
                     rows={4}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     onBlur={(e) => {
                       field.onBlur();
                       handleFieldBlur('finalTransform', e.target.value);
+                    }}
+                  />
+                )}
+              />
+              {errors.finalTransform && (
+                <span className="text-red-500 text-xs">{errors.finalTransform.message as string}</span>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Optional code or expression to transform the output before returning.
+              </p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <Controller
+                name="description"
+                control={control}
+                render={({ field }) => (
+                  <textarea
+                    {...field}
+                    placeholder="Describe this END node's purpose"
+                    rows={2}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    onBlur={(e) => {
+                      field.onBlur();
+                      handleFieldBlur('description', e.target.value);
                     }}
                   />
                 )}

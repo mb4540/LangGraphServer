@@ -121,6 +121,8 @@ const ERROR_MESSAGES = {
   START_REQUIRED: 'A graph must have a START node',
   START_NO_INCOMING: 'START nodes cannot have incoming edges',
   START_ONE_OUTGOING: 'START node must have exactly one outgoing edge',
+  END_REQUIRED: 'A graph must have at least one END node',
+  END_UNREACHABLE: 'All END nodes must have at least one incoming edge',
   EDGE_FROM_END: 'END nodes cannot have outgoing edges',
   DUPLICATE_EDGE: 'This connection already exists',
   SELF_CONNECTION: 'A node cannot connect to itself',
@@ -370,14 +372,27 @@ export const useGraphStore = create<GraphState>()(
           return { valid: false, message: ERROR_MESSAGES.START_NO_INCOMING };
         }
         
+        // Check if there's at least one END node
+        const endNodes = state.nodes.filter(n => n.type === NodeType.END);
+        if (endNodes.length === 0) {
+          return { valid: false, message: ERROR_MESSAGES.END_REQUIRED };
+        }
+        
         // Validate no outgoing edges from END nodes
-        const endNodeIds = state.nodes
-          .filter(n => n.type === NodeType.END)
-          .map(n => n.id);
+        const endNodeIds = endNodes.map(n => n.id);
           
         const endNodeOutgoingEdges = state.edges.filter(e => endNodeIds.includes(e.source));
         if (endNodeOutgoingEdges.length > 0) {
           return { valid: false, message: ERROR_MESSAGES.EDGE_FROM_END };
+        }
+        
+        // Make sure all END nodes have at least one incoming edge (no unreachable END nodes)
+        const endNodesWithoutIncomingEdges = endNodeIds.filter(id => {
+          return !state.edges.some(e => e.target === id);
+        });
+        
+        if (endNodesWithoutIncomingEdges.length > 0) {
+          return { valid: false, message: ERROR_MESSAGES.END_UNREACHABLE };
         }
         
         // Validate Parallel Fork nodes have at least 2 outgoing edges
