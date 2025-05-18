@@ -286,14 +286,31 @@ export function validateEdgeConnection(sourceType: string, targetType: string, s
   
   // Timeout Guard node specific validation
   if (sourceType === 'timeoutGuardNode') {
+    // If a specific handle is provided
     if (sourceHandle) {
-      // normal handle should connect to the flow when execution completes in time
+      // normal handle should connect to regular next steps
       if (sourceHandle === 'normal') {
         return targetType !== 'startNode';
       }
       
       // expired handle should connect to fallback logic when timeout occurs
       if (sourceHandle === 'expired') {
+        return targetType !== 'startNode';
+      }
+    }
+  }
+  
+  // Human-Pause node specific validation
+  if (sourceType === 'humanPauseNode') {
+    // If a specific handle is provided
+    if (sourceHandle) {
+      // continue handle connects to the normal flow after human intervention
+      if (sourceHandle === 'continue') {
+        return targetType !== 'startNode';
+      }
+      
+      // skip handle connects to alternative flow when paused execution is skipped
+      if (sourceHandle === 'skip') {
         return targetType !== 'startNode';
       }
     }

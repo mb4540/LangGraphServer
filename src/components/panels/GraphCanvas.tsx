@@ -18,6 +18,7 @@ import ReactFlow, {
   EdgeChange,
   XYPosition,
   OnConnectStartParams,
+  NodeTypes, // Added NodeTypes import
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import useGraphStore from '@/store/graphStore';
@@ -37,6 +38,7 @@ import ParallelJoinNode from '../nodes/ParallelJoinNode';
 import LoopNode from '../nodes/LoopNode';
 import ErrorRetryNode from '../nodes/ErrorRetryNode';
 import TimeoutGuardNode from '../nodes/TimeoutGuardNode';
+import HumanPauseNode from '../nodes/HumanPauseNode';
 
 // JSON Import/Export Modal
 import JSONModal from '../modals/JSONModal';
@@ -56,6 +58,7 @@ const nodeTypes: NodeTypes = {
   loopNode: LoopNode,
   errorRetryNode: ErrorRetryNode,
   timeoutGuardNode: TimeoutGuardNode,
+  humanPauseNode: HumanPauseNode,
 };
 
 // Node palette items
@@ -124,6 +127,12 @@ const nodeTemplates = [
     label: 'Timeout Guard',
     description: 'Protect against long-running operations with timeout policies',
     className: 'bg-purple-100 border-purple-500',
+  },
+  {
+    type: 'humanPauseNode',
+    label: 'Human Pause',
+    description: 'Pause execution for human intervention',
+    className: 'bg-blue-100 border-blue-500',
   },
   {
     type: 'toolNode',

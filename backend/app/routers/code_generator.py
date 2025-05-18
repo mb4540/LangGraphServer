@@ -907,22 +907,51 @@ def handle_timeout(state, on_timeout, default_result, node_id):
 
 {% if node.type == 'humanPauseNode' %}
 # Human-in-the-loop node that pauses for intervention
-@graph.node
-def {{ node.id|replace('-', '_') }}(state: GraphState) -> Dict[str, Any]:
+from app.utils.human_pause_utils import human_pause
+
+@graph.node(config={"output_keys": ["continue", "skip"]})
+def {{ node.id|replace('-', '_') }}(state: GraphState) -> Dict[str, str]:
     """{{ node.data.label }} - Human Pause node for manual intervention"""
-    # Add a message in the state to indicate that human input is needed
-    return {
-        **state,
-        'human_intervention': {
-            'required': True,
-            'message': "{{ node.data.pauseMessage|default('Waiting for human input') }}",
-            'allow_edits': {{ 'true' if node.data.allowEdits|default(true) else 'false' }},
-            {% if node.data.requiredFields %}
-            'required_fields': {{ node.data.requiredFields }},
-            {% endif %}
-            'node_id': '{{ node.id }}'
-        }
-    }
+    # Extract configuration
+    pause_message = "{{ node.data.pauseMessage|default('Waiting for human input') }}"
+    {% if node.data.timeoutMs %}
+    timeout_ms = {{ node.data.timeoutMs }}
+    {% else %}
+    timeout_ms = None  # No timeout, wait indefinitely
+    {% endif %}
+    allow_edits = {{ 'True' if node.data.allowEdits|default(true) else 'False' }}
+    
+    {% if node.data.requiredFields %}
+    # Required fields that must be provided by the human
+    required_fields = {{ node.data.requiredFields }}
+    {% else %}
+    required_fields = None
+    {% endif %}
+    
+    # Try to pause for human intervention
+    try:
+        # Call the human_pause function which handles waiting for human input
+        updated_state = human_pause(
+            state=state,
+            pause_message=pause_message,
+            required_fields=required_fields,
+            allow_edits=allow_edits,
+            timeout_ms=timeout_ms
+        )
+        
+        # Check if this was timed out or explicitly skipped
+        if '_human_pause_skipped' in updated_state:
+            # Remove the marker and route to skip path
+            del updated_state['_human_pause_skipped']
+            return {"skip": updated_state}
+        else:
+            # Continue with updated state from human
+            return {"continue": updated_state}
+            
+    except Exception as e:
+        # Log the error and continue on error path
+        print(f"Error in human pause node: {e}")
+        return {"skip": state}
 {% endif %}
 
 {% if node.type == 'subgraphNode' %}

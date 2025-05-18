@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { IconRefresh, IconAlertTriangle, IconClock } from '@/components/ui/icons';
+import { IconRefresh, IconAlertTriangle, IconClock, IconUser } from '@/components/ui/icons';
 import useGraphStore from '@/store/graphStore';
 import { Edge } from 'reactflow';
 import { 
@@ -13,7 +13,8 @@ import {
   ToolNodeData,
   DecisionNodeData,
   EndNodeData,
-  EdgeData
+  EdgeData,
+  HumanPauseNodeData
 } from '@/utils/schemaUtils';
 
 const DetailPanel: React.FC = () => {
@@ -1789,6 +1790,162 @@ const DetailPanel: React.FC = () => {
                 <li>Connect the <span className="text-red-600 font-medium">expired</span> handle to fallback logic when timeout occurs</li>
                 <li>For long-running tasks, set an appropriate heartbeat interval</li>
               </ul>
+            </div>
+          </>
+        );
+
+      case 'humanPauseNode':
+        return (
+          <>
+            <div className="p-3 bg-blue-50 rounded-md border border-blue-200 text-sm text-blue-800 mb-4">
+              <h3 className="font-medium flex items-center">
+                <IconUser className="h-4 w-4 mr-1" />
+                Human Pause Node
+              </h3>
+              <p className="text-xs text-gray-700 mt-1">
+                Pauses workflow execution for human intervention before continuing.
+              </p>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Pause Message</label>
+              <Controller
+                name="pauseMessage"
+                control={control}
+                defaultValue="Waiting for human input"
+                render={({ field }) => (
+                  <textarea
+                    {...field}
+                    rows={3}
+                    placeholder="Message to display when paused"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onChange={(e) => {
+                      field.onChange(e.target.value);
+                      handleFieldChange('pauseMessage', e.target.value);
+                    }}
+                  />
+                )}
+              />
+              {errors.pauseMessage && (
+                <span className="text-red-500 text-xs">{errors.pauseMessage.message as string}</span>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Message explaining what input is needed from the human user.
+              </p>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Timeout (ms)</label>
+              <Controller
+                name="timeoutMs"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    type="number"
+                    min="1000"
+                    step="1000"
+                    placeholder="Optional (no timeout if empty)"
+                    {...field}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value, 10);
+                      field.onChange(value || undefined);
+                      handleFieldChange('timeoutMs', value || undefined);
+                    }}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                )}
+              />
+              {errors.timeoutMs && (
+                <span className="text-red-500 text-xs">{errors.timeoutMs.message as string}</span>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Optional timeout after which execution will continue without human input.
+              </p>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Required Fields</label>
+              <Controller
+                name="requiredFields"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    type="text"
+                    placeholder="comma,separated,field,names"
+                    {...field}
+                    onChange={(e) => {
+                      // Store as string in the form for editing, convert to array for state
+                      const inputValue = e.target.value;
+                      field.onChange(inputValue);
+                      
+                      const fieldArray = inputValue
+                        ? inputValue.split(',').map(f => f.trim()).filter(Boolean)
+                        : [];
+                        
+                      handleFieldChange('requiredFields', fieldArray.length > 0 ? fieldArray : undefined);
+                    }}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                )}
+              />
+              {errors.requiredFields && (
+                <span className="text-red-500 text-xs">{errors.requiredFields.message as string}</span>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Optional list of field names that must be provided before continuing.
+              </p>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Allow State Edits</label>
+              <Controller
+                name="allowEdits"
+                control={control}
+                defaultValue={true}
+                render={({ field }) => (
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="allowEdits"
+                      checked={field.value}
+                      onChange={(e) => {
+                        field.onChange(e.target.checked);
+                        handleFieldChange('allowEdits', e.target.checked);
+                      }}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="allowEdits" className="ml-2 block text-sm text-gray-700">
+                      Enable state modification during pauses
+                    </label>
+                  </div>
+                )}
+              />
+              <p className="text-xs text-gray-500 mt-1 ml-6">
+                If enabled, humans can modify the workflow state, not just view it.
+              </p>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <Controller
+                name="description"
+                control={control}
+                render={({ field }) => (
+                  <textarea
+                    {...field}
+                    rows={2}
+                    placeholder="Optional description"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onChange={(e) => {
+                      field.onChange(e.target.value);
+                      handleFieldChange('description', e.target.value);
+                    }}
+                  />
+                )}
+              />
+              {errors.description && (
+                <span className="text-red-500 text-xs">{errors.description.message as string}</span>
+              )}
             </div>
           </>
         );

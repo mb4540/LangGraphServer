@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import code_generator, websockets, projects
+from app.routers import code_generator, websockets, projects, human_pause
 from app.models.database import init_db
 
 app = FastAPI(
@@ -23,6 +23,7 @@ app.add_middleware(
 app.include_router(code_generator.router, prefix="/api")
 app.include_router(websockets.router, prefix="/api")
 app.include_router(projects.router, prefix="/api")
+app.include_router(human_pause.router)
 
 @app.on_event("startup")
 async def startup_event():
