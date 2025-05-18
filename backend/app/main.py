@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import code_generator
+from app.routers import code_generator, websockets
 
 app = FastAPI(
     title="LangGraph Server",
@@ -20,6 +20,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(code_generator.router, prefix="/api")
+app.include_router(websockets.router, prefix="/api")
 
 
 @app.get("/")

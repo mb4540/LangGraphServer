@@ -40,7 +40,7 @@ interface GraphState {
 }
 
 // Create the store
-const useGraphStore = create<GraphState>()(
+export const useGraphStore = create<GraphState>()(
   persist(
     (set) => ({
       // Initial state
@@ -100,3 +100,11 @@ const useGraphStore = create<GraphState>()(
 );
 
 export default useGraphStore;
+
+// Custom hook to access graph data conveniently
+export const useGraph = () => {
+  const nodes = useGraphStore(state => state.nodes);
+  const edges = useGraphStore(state => state.edges);
+  const graphName = useGraphStore(state => state.graphName);
+  return { nodes, edges, graphName };
+};
