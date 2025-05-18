@@ -350,9 +350,60 @@ graph.add_node({{ node.id|replace('-', '_') }})
 @graph.node
 def {{ node.id|replace('-', '_') }}(state: GraphState) -> Dict[str, str]:
     """{{ node.data.label }} - Decision node that routes based on a predicate"""
-    # Implement conditional routing logic
-    {% if node.data.condition %}
-    # This is the condition evaluation
+    
+    {% if node.data.evaluationMode == 'advanced' and node.data.predicates %}
+    # Advanced mode with predicate-based routing
+    try:
+        # Get all state values for predicate evaluation
+        # First, create a safe evaluation context
+        eval_globals = {"__builtins__": {}}
+        eval_locals = {"state": state, "_state": state.dict()}
+
+        # Define helper functions for predicate evaluation
+        def has_key(d, key):
+            return key in d
+            
+        def contains(container, item):
+            return item in container
+            
+        eval_locals["has_key"] = has_key
+        eval_locals["contains"] = contains
+        
+        # Check each predicate in order
+        {% for predicate in node.data.predicates %}
+        # Evaluate predicate: {{ predicate.name }}
+        try:
+            predicate_result = eval("{{ predicate.expression|replace('"', '\"') }}", eval_globals, eval_locals)
+            if predicate_result:
+                return {"next": "{{ predicate.name }}"}
+        except Exception as e:
+            print(f"Error evaluating predicate {{ predicate.name }}: {e}")
+            # Continue to next predicate on error
+            pass
+        {% endfor %}
+
+        # If no predicate matches, use default branch if specified
+        {% if node.data.defaultBranch %}
+        return {"next": "{{ node.data.defaultBranch }}"}
+        {% elif node.data.branches and node.data.branches|length > 0 %}
+        return {"next": "{{ node.data.branches[0] }}"}
+        {% else %}
+        return {"next": "default"}
+        {% endif %}
+            
+    except Exception as e:
+        print(f"Error in decision node: {e}")
+        # Default to first branch or 'default' on error
+        {% if node.data.defaultBranch %}
+        return {"next": "{{ node.data.defaultBranch }}"}
+        {% elif node.data.branches and node.data.branches|length > 0 %}
+        return {"next": "{{ node.data.branches[0] }}"}
+        {% else %}
+        return {"next": "default"}
+        {% endif %}
+        
+    {% elif node.data.evaluationMode == 'simple' or not node.data.evaluationMode %}
+    # Simple mode with basic condition
     try:
         # Get relevant state values
         input_value = state.get("input", "")
@@ -360,38 +411,76 @@ def {{ node.id|replace('-', '_') }}(state: GraphState) -> Dict[str, str]:
         context = state.get("context", {})
         errors = state.get("errors", [])
         
-        # Evaluate the condition (placeholder logic)
-        # You'd replace this with more sophisticated condition evaluation
-        if errors:
-            result = "failure"
-        elif not output_value:
-            result = "default"
-        else:
-            result = "success"
+        # Helper function for simplified condition evaluation
+        def evaluate_condition(condition, state_values):
+            # Simple condition matching logic
+            condition = condition.lower().strip()
             
-        # Check for specific branches if defined
-        {% if node.data.branches %}
-        # Get the first branch as default
-        if result not in {{ node.data.branches }}:
-            result = "{{ node.data.branches[0] }}"
-        {% endif %}
-            
-        return {"decision": result}
-    except Exception as e:
-        # If condition evaluation fails, return default
+            # Basic error detection
+            if 'error' in condition and state_values.get('errors'):
+                return 'error'
+                
+            # Success condition
+            if 'success' in condition and state_values.get('output'):
+                return 'success'
+                
+            # Empty or missing output
+            if ('empty' in condition or 'missing' in condition) and not state_values.get('output'):
+                return 'missing'
+                
+            # Failure condition
+            if 'fail' in condition and (not state_values.get('output') or state_values.get('errors')):
+                return 'failure'
+                
+            # Default fallback
+            return 'default'
+        
+        # Evaluate the custom condition
+        state_values = {
+            'input': input_value,
+            'output': output_value,
+            'context': context,
+            'errors': errors
+        }
+        
+        result = evaluate_condition('{{ node.data.condition }}', state_values)
+        
+        # Map the result to available branches
+        available_branches = {{ node.data.branches|tojson }}
+        if result in available_branches:
+            return {"next": result}
+         
+        # Fallback to default branch if specified, otherwise first branch
         {% if node.data.defaultBranch %}
-        return {"decision": "{{ node.data.defaultBranch }}"}
+        return {"next": "{{ node.data.defaultBranch }}"}
+        {% elif node.data.branches and node.data.branches|length > 0 %}
+        return {"next": "{{ node.data.branches[0] }}"}
         {% else %}
-        return {"decision": "default"}
+        return {"next": "default"}
         {% endif %}
+        
+    except Exception as e:
+        print(f"Error in decision node: {e}")
+        # Default to first branch or 'default' on error
+        {% if node.data.defaultBranch %}
+        return {"next": "{{ node.data.defaultBranch }}"}
+        {% elif node.data.branches and node.data.branches|length > 0 %}
+        return {"next": "{{ node.data.branches[0] }}"}
+        {% else %}
+        return {"next": "default"}
+        {% endif %}
+        
     {% else %}
-    # No condition specified, use default branch
+    # No proper configuration, use default routing
     {% if node.data.defaultBranch %}
-    return {"decision": "{{ node.data.defaultBranch }}"}
+    return {"next": "{{ node.data.defaultBranch }}"}
+    {% elif node.data.branches and node.data.branches|length > 0 %}
+    return {"next": "{{ node.data.branches[0] }}"}
     {% else %}
-    return {"decision": "default"}
+    return {"next": "default"}
     {% endif %}
     {% endif %}
+
 {% endif %}
 {% endfor %}
 

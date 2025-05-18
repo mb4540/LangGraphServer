@@ -68,9 +68,63 @@ export const memoryWriteNodeSchema = baseNodeSchema.extend({
 // ============ CONTROL-FLOW / ORCHESTRATION NODES ============
 
 // Decision Node Schema - Routes to one of several branches based on a predicate
+// Define predicate schema for advanced routing
+export const predicateSchema = z.object({
+  name: z.string().min(1, 'Predicate name is required'),
+  expression: z.string().min(1, 'Expression is required'),
+  description: z.string().optional(),
+});
+
 export const decisionNodeSchema = baseNodeSchema.extend({
-  condition: z.string().min(1, 'Condition is required'),
-  branches: z.array(z.string()).min(2, 'At least two branches are required'),
+  evaluationMode: z.enum(['simple', 'advanced']).default('simple'),
+  // For simple mode
+  condition: z.string().min(1, 'Condition is required').optional()
+    .superRefine((val, ctx) => {
+      // Only validate if in simple mode
+      if (ctx.parent.evaluationMode === 'simple' && !val) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Condition is required in simple mode',
+        });
+      }
+    }),
+  branches: z.array(z.string()).optional()
+    .superRefine((val, ctx) => {
+      // Only validate if in simple mode
+      if (ctx.parent.evaluationMode === 'simple') {
+        if (!val || val.length < 2) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'At least two branches are required in simple mode',
+          });
+        }
+      }
+    }),
+  // For advanced mode
+  predicates: z.array(predicateSchema).optional()
+    .superRefine((val, ctx) => {
+      // Only validate if in advanced mode
+      if (ctx.parent.evaluationMode === 'advanced') {
+        if (!val || val.length < 1) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'At least one predicate is required in advanced mode',
+          });
+        }
+        
+        // Check for duplicate predicate names
+        if (val) {
+          const names = val.map(p => p.name);
+          const uniqueNames = new Set(names);
+          if (names.length !== uniqueNames.size) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'Predicate names must be unique',
+            });
+          }
+        }
+      }
+    }),
   defaultBranch: z.string().optional(),
 });
 

@@ -35,6 +35,7 @@ const DetailPanel: React.FC = () => {
     handleSubmit, 
     reset, 
     setValue,
+    watch,
     formState: { errors } 
   } = useForm({
     resolver: selectedNode 
@@ -614,54 +615,232 @@ const DetailPanel: React.FC = () => {
       case 'decisionNode':
         return (
           <>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Condition</label>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Evaluation Mode</label>
               <Controller
-                name="condition"
+                name="evaluationMode"
                 control={control}
                 render={({ field }) => (
-                  <textarea
-                    {...field}
-                    rows={3}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    onBlur={(e) => {
-                      field.onBlur();
-                      handleFieldBlur('condition', e.target.value);
-                    }}
-                  />
+                  <div className="flex">{/* Mode tabs */}
+                    <button
+                      type="button"
+                      className={`px-4 py-2 flex-1 ${field.value === 'simple' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'} rounded-l-md`}
+                      onClick={() => {
+                        field.onChange('simple');
+                        handleFieldChange('evaluationMode', 'simple');
+                      }}
+                    >
+                      Simple
+                    </button>
+                    <button
+                      type="button"
+                      className={`px-4 py-2 flex-1 ${field.value === 'advanced' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'} rounded-r-md`}
+                      onClick={() => {
+                        field.onChange('advanced');
+                        handleFieldChange('evaluationMode', 'advanced');
+                      }}
+                    >
+                      Advanced
+                    </button>
+                  </div>
                 )}
               />
-              {errors.condition && (
-                <span className="text-red-500 text-xs">{errors.condition.message as string}</span>
-              )}
+              
+              <div className="mt-1 text-xs text-gray-500">
+                {watch('evaluationMode') === 'simple' 
+                  ? 'Simple mode uses a basic condition to choose between fixed branches.' 
+                  : 'Advanced mode allows multiple predicates for sophisticated routing logic.'
+                }
+              </div>
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Branches (comma-separated)</label>
+            {/* Simple mode fields */}
+            {watch('evaluationMode') === 'simple' && (
+              <>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Condition</label>
+                  <Controller
+                    name="condition"
+                    control={control}
+                    render={({ field }) => (
+                      <textarea
+                        {...field}
+                        rows={3}
+                        placeholder="Simple condition that will be used for routing logic"
+                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        onBlur={(e) => {
+                          field.onBlur();
+                          handleFieldBlur('condition', e.target.value);
+                        }}
+                      />
+                    )}
+                  />
+                  {errors.condition && (
+                    <span className="text-red-500 text-xs">{errors.condition.message as string}</span>
+                  )}
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Branches (comma-separated)</label>
+                  <Controller
+                    name="branches"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        type="text"
+                        value={Array.isArray(field.value) ? field.value.join(', ') : ''}
+                        placeholder="E.g., true, false, error"
+                        onChange={(e) => {
+                          const branches = e.target.value 
+                            ? e.target.value.split(',').map(b => b.trim()) 
+                            : [];
+                          field.onChange(branches);
+                          handleFieldChange('branches', branches);
+                        }}
+                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    )}
+                  />
+                  {errors.branches && (
+                    <span className="text-red-500 text-xs">{errors.branches.message as string}</span>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Advanced mode fields */}
+            {watch('evaluationMode') === 'advanced' && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Predicates</label>
+                <Controller
+                  name="predicates"
+                  control={control}
+                  render={({ field }) => (
+                    <div className="space-y-3">
+                      {Array.isArray(field.value) && field.value.map((predicate, index) => (
+                        <div key={index} className="p-3 border border-gray-300 rounded-md bg-gray-50">
+                          <div className="flex justify-between items-center mb-2">
+                            <label className="text-sm font-medium">Predicate {index + 1}</label>
+                            <button
+                              type="button"
+                              className="text-red-500 hover:text-red-700"
+                              onClick={() => {
+                                const newPredicates = [...field.value];
+                                newPredicates.splice(index, 1);
+                                field.onChange(newPredicates);
+                                handleFieldChange('predicates', newPredicates);
+                              }}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                          
+                          <div className="mb-2">
+                            <label className="block text-xs text-gray-600 mb-1">Name</label>
+                            <input
+                              type="text"
+                              value={predicate.name || ''}
+                              placeholder="success, error, needs_info"
+                              onChange={(e) => {
+                                const newPredicates = [...field.value];
+                                newPredicates[index] = {
+                                  ...newPredicates[index],
+                                  name: e.target.value
+                                };
+                                field.onChange(newPredicates);
+                                handleFieldChange('predicates', newPredicates);
+                              }}
+                              className="w-full p-2 text-sm border border-gray-300 rounded-md"
+                            />
+                          </div>
+                          
+                          <div className="mb-2">
+                            <label className="block text-xs text-gray-600 mb-1">Expression</label>
+                            <textarea
+                              value={predicate.expression || ''}
+                              placeholder="state['output'] and 'success' in state['output']"
+                              onChange={(e) => {
+                                const newPredicates = [...field.value];
+                                newPredicates[index] = {
+                                  ...newPredicates[index],
+                                  expression: e.target.value
+                                };
+                                field.onChange(newPredicates);
+                                handleFieldChange('predicates', newPredicates);
+                              }}
+                              rows={2}
+                              className="w-full p-2 text-sm border border-gray-300 rounded-md"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">Description (optional)</label>
+                            <input
+                              type="text"
+                              value={predicate.description || ''}
+                              placeholder="Routes when the task is successful"
+                              onChange={(e) => {
+                                const newPredicates = [...field.value];
+                                newPredicates[index] = {
+                                  ...newPredicates[index],
+                                  description: e.target.value
+                                };
+                                field.onChange(newPredicates);
+                                handleFieldChange('predicates', newPredicates);
+                              }}
+                              className="w-full p-2 text-sm border border-gray-300 rounded-md"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                      
+                      <button
+                        type="button"
+                        className="w-full p-2 border border-dashed border-gray-300 rounded-md text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                        onClick={() => {
+                          const currentPredicates = Array.isArray(field.value) ? field.value : [];
+                          const newPredicates = [
+                            ...currentPredicates,
+                            { name: '', expression: '', description: '' }
+                          ];
+                          field.onChange(newPredicates);
+                          handleFieldChange('predicates', newPredicates);
+                        }}
+                      >
+                        + Add Predicate
+                      </button>
+                      
+                      {errors.predicates && (
+                        <span className="text-red-500 text-xs block mt-1">{errors.predicates.message as string}</span>
+                      )}
+                    </div>
+                  )}
+                />
+              </div>
+            )}
+            
+            {/* Default branch field (for both modes) */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Default Branch (optional)</label>
               <Controller
-                name="branches"
+                name="defaultBranch"
                 control={control}
                 render={({ field }) => (
                   <input
                     type="text"
-                    value={Array.isArray(field.value) ? field.value.join(', ') : ''}
-                    onChange={(e) => {
-                      const branches = e.target.value 
-                        ? e.target.value.split(',').map(b => b.trim()) 
-                        : [];
-                      field.onChange(branches);
-                    }}
+                    {...field}
+                    placeholder="Name of the default branch"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     onBlur={(e) => {
                       field.onBlur();
-                      const branches = e.target.value 
-                        ? e.target.value.split(',').map(b => b.trim()) 
-                        : [];
-                      handleFieldBlur('branches', branches);
+                      handleFieldBlur('defaultBranch', e.target.value);
                     }}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 )}
               />
+              <div className="mt-1 text-xs text-gray-500">
+                If no condition matches, the flow will route to this branch.
+              </div>
             </div>
           </>
         );
