@@ -4,26 +4,24 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import ReactFlow, {
   Node,
   Edge,
+  Connection,
   ReactFlowProvider,
+  useNodesState,
+  useEdgesState,
+  useReactFlow,
+  addEdge,
   Controls,
   Background,
   BackgroundVariant,
-  Connection,
-  useNodesState,
-  useEdgesState,
-  addEdge,
   Panel,
-  useReactFlow,
-  NodeTypes,
-  EdgeTypes,
-  NodeDragHandler,
-  OnConnectStartParams,
   NodeChange,
   EdgeChange,
   XYPosition,
+  OnConnectStartParams,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import useGraphStore from '@/store/graphStore';
+import { validateEdgeConnection } from '@/utils/schemaUtils';
 
 // Import custom node types
 import LLMNode from '../nodes/LLMNode';
@@ -36,6 +34,7 @@ import MemoryReadNode from '../nodes/MemoryReadNode';
 import MemoryWriteNode from '../nodes/MemoryWriteNode';
 import ParallelForkNode from '../nodes/ParallelForkNode';
 import ParallelJoinNode from '../nodes/ParallelJoinNode';
+import LoopNode from '../nodes/LoopNode';
 
 // JSON Import/Export Modal
 import JSONModal from '../modals/JSONModal';
@@ -52,6 +51,7 @@ const nodeTypes: NodeTypes = {
   memoryWriteNode: MemoryWriteNode,
   parallelForkNode: ParallelForkNode,
   parallelJoinNode: ParallelJoinNode,
+  loopNode: LoopNode,
 };
 
 // Node palette items
@@ -102,6 +102,12 @@ const nodeTemplates = [
     label: 'Parallel Join',
     description: 'Merge results from parallel branches',
     className: 'bg-indigo-100 border-indigo-500',
+  },
+  {
+    type: 'loopNode',
+    label: 'Loop Node',
+    description: 'Create cyclic execution patterns with exit conditions',
+    className: 'bg-amber-100 border-amber-500',
   },
   {
     type: 'toolNode',
@@ -172,14 +178,37 @@ const GraphCanvas: React.FC = () => {
     setSelectedNodeId(null); // Deselect any node when an edge is selected
   }, [setSelectedNodeId]);
   
+  // Validate connection before allowing it
+  const validateConnection = useCallback((connection: Connection) => {
+    // Get the source and target nodes
+    const sourceNode = nodes.find(node => node.id === connection.source);
+    const targetNode = nodes.find(node => node.id === connection.target);
+    
+    if (!sourceNode || !targetNode) return false;
+    
+    // Use the validateEdgeConnection function from schemaUtils
+    return validateEdgeConnection(
+      sourceNode.type as string,
+      targetNode.type as string,
+      connection.sourceHandle || undefined,
+      connection.targetHandle || undefined
+    );
+  }, [nodes]);
+  
   // Handle node connections
   const onConnect = useCallback((connection: Connection) => {
-    setEdges((eds) => addEdge({
-      ...connection,
-      animated: true,
-      style: { stroke: '#3b82f6', strokeWidth: 2 },
-    }, eds));
-  }, [setEdges]);
+    // If the connection is valid, add it to the graph
+    if (validateConnection(connection)) {
+      setEdges((eds) => addEdge({
+        ...connection,
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+      }, eds));
+    } else {
+      // Display an error toast or notification
+      console.warn('Invalid connection: Loop structures must be created properly');
+    }
+  }, [setEdges, validateConnection]);
   
   // Handle drag and drop from sidebar palette
   const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
@@ -321,7 +350,7 @@ const GraphCanvas: React.FC = () => {
               onDrop={onDrop}
               fitView
             >
-              <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+              <Background variant="dots" gap={12} size={1} />
               <Controls />
             </ReactFlow>
           </ReactFlowProvider>

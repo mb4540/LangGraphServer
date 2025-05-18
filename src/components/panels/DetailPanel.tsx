@@ -1376,6 +1376,133 @@ const DetailPanel: React.FC = () => {
           </>
         );
         
+      case 'loopNode':
+        return (
+          <>
+            <div className="p-3 bg-amber-50 rounded-md border border-amber-200 text-sm text-amber-800 mb-4">
+              <h3 className="font-medium flex items-center">
+                <IconRefresh className="h-4 w-4 mr-1" />
+                Loop Node
+              </h3>
+              <p className="text-xs text-gray-700 mt-1">
+                Loop nodes create cyclic patterns with conditional exit criteria.
+              </p>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Loop Condition</label>
+              <Controller
+                name="condition"
+                control={control}
+                render={({ field }) => (
+                  <textarea
+                    {...field}
+                    rows={2}
+                    placeholder="Enter condition to evaluate for continuing the loop"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    onBlur={(e) => {
+                      field.onBlur();
+                      handleFieldBlur('condition', e.target.value);
+                    }}
+                  />
+                )}
+              />
+              {errors.condition && (
+                <span className="text-red-500 text-xs">{errors.condition.message as string}</span>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Expression that evaluates to true to continue the loop, false to exit
+              </p>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Maximum Iterations</label>
+              <Controller
+                name="maxIterations"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    type="number"
+                    min="1"
+                    {...field}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value, 10);
+                      if (value >= 1) {
+                        field.onChange(value);
+                        handleFieldChange('maxIterations', value);
+                      }
+                    }}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  />
+                )}
+              />
+              {errors.maxIterations && (
+                <span className="text-red-500 text-xs">{errors.maxIterations.message as string}</span>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Safety limit to prevent infinite loops (0 or empty for no limit)
+              </p>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Collection Key (Optional)</label>
+              <Controller
+                name="collectionKey"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    type="text"
+                    {...field}
+                    placeholder="Key in state that contains iterable collection"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    onBlur={(e) => {
+                      field.onBlur();
+                      handleFieldBlur('collectionKey', e.target.value);
+                    }}
+                  />
+                )}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                For iterating over a collection (if used, will override condition)
+              </p>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Iterator Key (Optional)</label>
+              <Controller
+                name="iteratorKey"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    type="text"
+                    {...field}
+                    placeholder="Key to store current item during iteration"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    onBlur={(e) => {
+                      field.onBlur();
+                      handleFieldBlur('iteratorKey', e.target.value);
+                    }}
+                  />
+                )}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Where to store the current item when iterating over a collection
+              </p>
+            </div>
+            
+            <div className="p-3 bg-amber-50 rounded-md border border-amber-200 text-sm text-amber-700">
+              <p className="font-medium mb-1">How to use Loop Node</p>
+              <ul className="list-disc list-inside text-xs space-y-1">
+                <li>Connect input to the top handle</li>
+                <li>Connect the <span className="text-green-600 font-medium">continue</span> handle to nodes inside the loop</li>
+                <li>Connect the <span className="text-red-600 font-medium">exit</span> handle to nodes after the loop</li>
+                <li>The loop will continue until your condition returns false</li>
+                <li>Use max iterations to prevent infinite loops</li>
+              </ul>
+            </div>
+          </>
+        );
+        
       default:
         // Generic node without specific fields
         return <div className="italic text-gray-500">No additional settings for this node type.</div>;

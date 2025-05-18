@@ -591,53 +591,101 @@ def {{ node.id|replace('-', '_') }}(state: GraphState) -> Dict[str, Any]:
 @graph.node
 def {{ node.id|replace('-', '_') }}(state: GraphState) -> Dict[str, str]:
     """{{ node.data.label }} - Loop node that creates cyclic execution"""
-    # Check if we should continue looping or exit
-    # This is a placeholder implementation that would be customized based on the actual condition
-    {% if node.data.condition %}
-    # Get the current iteration count from the state
-    iterations = state.get('loop_iterations', {}).get('{{ node.id|replace('-', '_') }}', 0)
+    # Initialize loop state tracking if not present
+    if 'loop_state' not in state:
+        state['loop_state'] = {}
     
-    # Check if we've reached the maximum iterations
-    if iterations >= {{ node.data.maxIterations|default(10) }}:
+    node_id = '{{ node.id|replace('-', '_') }}'
+    if node_id not in state['loop_state']:
+        state['loop_state'][node_id] = {
+            'iterations': 0,
+            'index': 0,
+            'complete': False
+        }
+    
+    loop_state = state['loop_state'][node_id]
+    
+    # Check if we've reached the maximum iterations to prevent infinite loops
+    max_iterations = {{ node.data.maxIterations|default(10) }}
+    if max_iterations > 0 and loop_state['iterations'] >= max_iterations:
+        print(f"Loop {node_id} reached maximum iterations ({max_iterations})")
         return {'decision': 'exit'}
     
-    # Update the iteration count
-    new_iterations = iterations + 1
-    loop_iterations = state.get('loop_iterations', {})
-    loop_iterations['{{ node.id|replace('-', '_') }}'] = new_iterations
+    # Increment iteration counter
+    loop_state['iterations'] += 1
     
-    # Evaluate the condition (placeholder logic)
-    try:
-        # This would be replaced with actual condition evaluation
-        # For now, we'll use a simple placeholder
-        if 'output' in state and len(state['output']) > 0:
-            # Check if the output contains 'done' or 'complete'
-            output = state['output'].lower()
-            if 'done' in output or 'complete' in output:
-                return {'decision': 'exit'}
+    # Collection-based iteration
+    {% if node.data.collectionKey %}
+    # Iterate over a collection
+    collection_key = "{{ node.data.collectionKey }}"
+    if collection_key in state:
+        collection = state[collection_key]
         
-        # Continue looping
+        # Check if we're done with the collection
+        if not isinstance(collection, (list, tuple, dict)) or loop_state['index'] >= len(collection):
+            loop_state['complete'] = True
+            return {'decision': 'exit'}
+        
+        # Get the current item
+        current_item = collection[loop_state['index']]
+        
+        # Store in the iterator key if specified
+        {% if node.data.iteratorKey %}
+        state["{{ node.data.iteratorKey }}"] = current_item
+        {% endif %}
+        
+        # Move to next item for next iteration
+        loop_state['index'] += 1
+        
         return {
             'decision': 'continue',
-            'loop_iterations': loop_iterations
+            **state
         }
+    else:
+        print(f"Warning: Collection key '{collection_key}' not found in state for loop {node_id}")
+        return {'decision': 'exit'}
+    
+    {% else %}
+    # Condition-based iteration
+    {% if node.data.condition %}
+    try:
+        # Evaluate the condition using a local function
+        condition_code = """
+# Return True to continue the loop, False to exit
+def evaluate_condition(state):
+    {{ node.data.condition }}
+        """
+        
+        local_vars = {}
+        exec(condition_code, {}, local_vars)
+        
+        if 'evaluate_condition' in local_vars and callable(local_vars['evaluate_condition']):
+            should_continue = local_vars['evaluate_condition'](state)
+            
+            if should_continue:
+                return {
+                    'decision': 'continue',
+                    **state
+                }
+            else:
+                loop_state['complete'] = True
+                return {'decision': 'exit'}
+        else:
+            # Fallback if condition function couldn't be created
+            print(f"Error: Could not create evaluation function for loop {node_id}")
+            return {'decision': 'exit'}
+            
     except Exception as e:
-        # If condition evaluation fails, exit the loop
+        # Log error and exit the loop if condition evaluation fails
+        print(f"Error evaluating loop condition in {node_id}: {str(e)}")
         return {'decision': 'exit'}
     {% else %}
     # No condition specified, always continue looping up to max iterations
-    iterations = state.get('loop_iterations', {}).get('{{ node.id|replace('-', '_') }}', 0)
-    if iterations >= {{ node.data.maxIterations|default(10) }}:
-        return {'decision': 'exit'}
-    
-    # Update the iteration count
-    loop_iterations = state.get('loop_iterations', {})
-    loop_iterations['{{ node.id|replace('-', '_') }}'] = iterations + 1
-    
     return {
         'decision': 'continue',
-        'loop_iterations': loop_iterations
+        **state
     }
+    {% endif %}
     {% endif %}
 {% endif %}
 

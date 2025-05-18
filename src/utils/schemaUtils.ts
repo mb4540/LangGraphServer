@@ -235,7 +235,7 @@ export function getEdgeSchema(): z.ZodObject<any> {
 }
 
 // Edge validation rules
-export function validateEdgeConnection(sourceType: string, targetType: string): boolean {
+export function validateEdgeConnection(sourceType: string, targetType: string, sourceHandle?: string, targetHandle?: string): boolean {
   // START nodes must not be the target of any edge
   if (targetType === 'startNode') {
     return false; // START nodes cannot have incoming edges
@@ -248,6 +248,29 @@ export function validateEdgeConnection(sourceType: string, targetType: string): 
   
   // END node cannot have outgoing edges
   if (sourceType === 'endNode') {
+    return false;
+  }
+  
+  // Loop node specific validation
+  if (sourceType === 'loopNode') {
+    // Check if we're using specific handle for loop.exit or loop.continue
+    if (sourceHandle) {
+      // Exit handle can connect to any node except START
+      if (sourceHandle === 'loop.exit') {
+        return targetType !== 'startNode';
+      }
+      
+      // Continue handle should only connect to nodes that aren't END nodes
+      // This is what creates the loop
+      if (sourceHandle === 'loop.continue') {
+        return targetType !== 'endNode';
+      }
+    }
+  }
+  
+  // Prevent direct cycles (self-loops) for all nodes except loop nodes
+  // We only allow cycles through the loop.continue handle
+  if (sourceType === targetType && sourceType !== 'loopNode' && !sourceHandle?.includes('loop')) {
     return false;
   }
   
