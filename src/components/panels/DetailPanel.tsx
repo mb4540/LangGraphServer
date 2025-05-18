@@ -400,6 +400,16 @@ const DetailPanel: React.FC = () => {
       case 'toolNode':
         return (
           <>
+            <div className="bg-green-50 p-3 mb-4 rounded-md border border-green-200">
+              <h3 className="font-medium text-green-800 flex items-center">
+                <span className="mr-2 bg-green-500 text-white px-2 py-0.5 text-xs rounded-full">TOOL</span>
+                Tool Node Configuration
+              </h3>
+              <p className="text-xs text-gray-700 mt-1">
+                Tool nodes execute external functions with concurrency and error handling capabilities.
+              </p>
+            </div>
+          
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Module Path</label>
               <Controller
@@ -409,7 +419,8 @@ const DetailPanel: React.FC = () => {
                   <input
                     {...field}
                     type="text"
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., app.tools.file_tools"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     onBlur={(e) => {
                       field.onBlur();
                       handleFieldBlur('modulePath', e.target.value);
@@ -420,6 +431,9 @@ const DetailPanel: React.FC = () => {
               {errors.modulePath && (
                 <span className="text-red-500 text-xs">{errors.modulePath.message as string}</span>
               )}
+              <p className="text-xs text-gray-500 mt-1">
+                Python import path to the module containing the tool function.
+              </p>
             </div>
             
             <div>
@@ -431,7 +445,8 @@ const DetailPanel: React.FC = () => {
                   <input
                     {...field}
                     type="text"
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., read_file"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     onBlur={(e) => {
                       field.onBlur();
                       handleFieldBlur('functionName', e.target.value);
@@ -442,6 +457,9 @@ const DetailPanel: React.FC = () => {
               {errors.functionName && (
                 <span className="text-red-500 text-xs">{errors.functionName.message as string}</span>
               )}
+              <p className="text-xs text-gray-500 mt-1">
+                Name of the function to call from the module.
+              </p>
             </div>
             
             <div>
@@ -453,7 +471,8 @@ const DetailPanel: React.FC = () => {
                   <textarea
                     {...field}
                     rows={4}
-                    className="w-full p-2 border border-gray-300 rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="JSON schema defining the function parameters"
+                    className="w-full p-2 border border-gray-300 rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     onBlur={(e) => {
                       field.onBlur();
                       handleFieldBlur('argsSchema', e.target.value);
@@ -461,31 +480,133 @@ const DetailPanel: React.FC = () => {
                   />
                 )}
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Optional JSON schema for function arguments validation.
+              </p>
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Timeout (ms)</label>
-              <Controller
-                name="timeout"
-                control={control}
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    type="number"
-                    min="0"
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    onChange={(e) => {
-                      const value = e.target.value ? parseInt(e.target.value) : undefined;
-                      field.onChange(value);
-                    }}
-                    onBlur={(e) => {
-                      field.onBlur();
-                      const value = e.target.value ? parseInt(e.target.value) : undefined;
-                      handleFieldBlur('timeout', value);
-                    }}
+            <div className="mt-4 p-3 bg-green-50 rounded-md border border-green-200">
+              <h4 className="text-sm font-medium text-green-800 mb-2">Concurrency & Performance</h4>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Concurrency</label>
+                <Controller
+                  name="concurrency"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="number"
+                      min="1"
+                      max="50"
+                      placeholder="1"
+                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      onChange={(e) => {
+                        const value = e.target.value ? parseInt(e.target.value) : 1;
+                        field.onChange(value);
+                      }}
+                      onBlur={(e) => {
+                        field.onBlur();
+                        const value = e.target.value ? parseInt(e.target.value) : 1;
+                        handleFieldBlur('concurrency', value);
+                      }}
+                    />
+                  )}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Number of concurrent executions allowed. Higher values improve throughput for I/O-bound operations.
+                </p>
+              </div>
+              
+              <div className="mt-3">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Timeout (ms)</label>
+                <Controller
+                  name="timeout"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="number"
+                      min="0"
+                      placeholder="30000"
+                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      onChange={(e) => {
+                        const value = e.target.value ? parseInt(e.target.value) : undefined;
+                        field.onChange(value);
+                      }}
+                      onBlur={(e) => {
+                        field.onBlur();
+                        const value = e.target.value ? parseInt(e.target.value) : undefined;
+                        handleFieldBlur('timeout', value);
+                      }}
+                    />
+                  )}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Maximum execution time in milliseconds before the tool call is aborted.
+                </p>
+              </div>
+            </div>
+            
+            <div className="mt-4 p-3 bg-green-50 rounded-md border border-green-200">
+              <h4 className="text-sm font-medium text-green-800 mb-2">Error Handling</h4>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Error Strategy</label>
+                <Controller
+                  name="errorHandling"
+                  control={control}
+                  render={({ field }) => (
+                    <select
+                      {...field}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      onBlur={(e) => {
+                        field.onBlur();
+                        handleFieldBlur('errorHandling', e.target.value);
+                      }}
+                    >
+                      <option value="fail">Fail (propagate error)</option>
+                      <option value="ignore">Ignore (continue execution)</option>
+                      <option value="retry">Retry (attempt again)</option>
+                    </select>
+                  )}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Determines how errors are handled during tool execution.
+                </p>
+              </div>
+              
+              {selectedNode.data.errorHandling === 'retry' && (
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Max Retries</label>
+                  <Controller
+                    name="maxRetries"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        type="number"
+                        min="0"
+                        max="10"
+                        placeholder="3"
+                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        onChange={(e) => {
+                          const value = e.target.value ? parseInt(e.target.value) : 3;
+                          field.onChange(value);
+                        }}
+                        onBlur={(e) => {
+                          field.onBlur();
+                          const value = e.target.value ? parseInt(e.target.value) : 3;
+                          handleFieldBlur('maxRetries', value);
+                        }}
+                      />
+                    )}
                   />
-                )}
-              />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Maximum number of retry attempts before giving up.
+                  </p>
+                </div>
+              )}
             </div>
           </>
         );

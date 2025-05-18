@@ -66,6 +66,10 @@ from langgraph.prebuilt.memory import MemoryReadNode, MemoryWriteNode
 from langgraph.prebuilt.retry import RetryHandler, RetryPolicy
 from langgraph.checkpoint import Checkpoint
 
+# Local imports
+from app.utils.tool_helpers import create_tool_executor
+from app.utils.tool_utils import get_tool_by_name, collect_available_tools
+
 # LangChain imports
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
@@ -229,29 +233,53 @@ Task: {input_data}"
 {% endif %}
 
 {% if node.type == 'toolNode' %}
-# Using LangGraph's prebuilt ToolNode for {{ node.id|replace('-', '_') }}
-{{ node.id|replace('-', '_') }} = ToolNode(
-    name="{{ node.data.label }}",
-    {% if node.data.modulePath and node.data.functionName %}
-    # Define a mapping of tool names to their implementations
-    tools={{
+# Create Tool Node for {{ node.id|replace('-', '_') }}
+{% if node.data.modulePath and node.data.functionName %}
+try:
+    # Get the function dynamically from the module
+    {{ node.data.functionName }}_func = get_tool_by_name("{{ node.data.functionName }}", "{{ node.data.modulePath }}")
+    
+    # Configure the tool executor with concurrency and error handling settings
+    tool_executor = create_tool_executor(
+        {{ node.data.functionName }}_func,
+        concurrency={{ node.data.concurrency|default(1) }},
+        error_handling="{{ node.data.errorHandling|default('fail') }}",
+        max_retries={{ node.data.maxRetries|default(3) }},
+        {% if node.data.timeout %}timeout={{ node.data.timeout }},{% endif %}
+    )
+    
+    # Create the tool definition
+    {{ node.id|replace('-', '_') }}_tools = {
         "{{ node.data.functionName }}": {
-            "func": lambda x: __import__("{{ node.data.modulePath }}").{{ node.data.functionName }}(x),
+            "func": lambda x: asyncio.run(tool_executor(x)),
             "description": "{{ node.data.label }} - {{ node.data.functionName }} from {{ node.data.modulePath }}"
         }
-    }},
-    {% else %}
-    # No module path specified, use a placeholder function
-    tools={{
-        "dummy_tool": {
-            "func": lambda x: f"Tool would process: {x}",
-            "description": "{{ node.data.label }} - placeholder tool"
+    }
+except ImportError as e:
+    # Fallback for import errors
+    print(f"Warning: Could not import {{ node.data.functionName }} from {{ node.data.modulePath }}: {e}")
+    {{ node.id|replace('-', '_') }}_tools = {
+        "{{ node.data.functionName }}": {
+            "func": lambda x: f"Error: Could not import {{ node.data.functionName }} from {{ node.data.modulePath }}",
+            "description": "[ERROR] {{ node.data.label }} - {{ node.data.functionName }} (import failed)"
         }
-    }},
-    {% endif %}
-    {% if node.data.timeout %}
-    # Set the timeout for tool execution
-    timeout={{ node.data.timeout }},
+    }
+{% else %}
+# No module path specified, use a placeholder function
+{{ node.id|replace('-', '_') }}_tools = {
+    "dummy_tool": {
+        "func": lambda x: f"Tool would process: {x}",
+        "description": "{{ node.data.label }} - placeholder tool"
+    }
+}
+{% endif %}
+
+# Using LangGraph's prebuilt ToolNode
+{{ node.id|replace('-', '_') }} = ToolNode(
+    name="{{ node.data.label }}",
+    tools={{ node.id|replace('-', '_') }}_tools,
+    {% if node.data.argsSchema %}
+    args_schema={{ node.data.argsSchema }},
     {% endif %}
 )
 

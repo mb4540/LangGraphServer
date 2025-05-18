@@ -41,9 +41,9 @@ export const toolNodeSchema = baseNodeSchema.extend({
   functionName: z.string().min(1, 'Function name is required'),
   argsSchema: z.string().optional(),
   timeout: z.number().int().positive().optional(),
-  concurrency: z.number().int().positive().default(1),
+  concurrency: z.number().int().min(1).max(50).default(1),
   errorHandling: z.enum(['fail', 'ignore', 'retry']).default('fail'),
-  maxRetries: z.number().int().min(0).default(3),
+  maxRetries: z.number().int().min(1).max(10).default(3).optional(),
 });
 
 // Memory Read Node Schema - Reads from short-term or long-term memory
