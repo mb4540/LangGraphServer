@@ -45,13 +45,41 @@ const formatPythonCode = (code: string): React.ReactNode => {
 };
 
 const CodeTemplate: React.FC = () => {
-  const { nodes, edges, graphName } = useGraph();
+  const { nodes, edges, graphName, selectedNodeId } = useGraph();
   const [code, setCode] = useState<string>('');
+
+  // State to track node code line ranges
+  const [nodeCodeRanges, setNodeCodeRanges] = useState<Record<string, {start: number, end: number}>>({});
+  const [highlightedLines, setHighlightedLines] = useState<number[]>([]);
+  
+  // Update highlighted lines when selected node changes
+  useEffect(() => {
+    if (selectedNodeId && nodeCodeRanges[selectedNodeId]) {
+      const range = nodeCodeRanges[selectedNodeId];
+      const linesToHighlight = [];
+      for (let i = range.start; i <= range.end; i++) {
+        linesToHighlight.push(i);
+      }
+      setHighlightedLines(linesToHighlight);
+      
+      // Scroll to the highlighted section
+      setTimeout(() => {
+        const element = document.getElementById(`code-line-${range.start}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    } else {
+      setHighlightedLines([]);
+    }
+  }, [selectedNodeId, nodeCodeRanges]);
 
   // Generate template code based on the current graph state
   useEffect(() => {
     // This function will be called whenever the graph changes
     const generateCode = () => {
+      // Create a new object to track node code ranges
+      const nodeRanges: Record<string, {start: number, end: number}> = {};
       // Start with the base template
       let generatedCode = `# Generated LangGraph code for: ${graphName || 'Untitled Graph'}
 
@@ -90,8 +118,14 @@ graph = StateGraph(GraphState)
           return 0;
         });
         
+        // Track current line number
+        let lineCount = generatedCode.split('\n').length;
+        
         sortedNodes.forEach(node => {
           const nodeId = node.id.replace(/-/g, '_');
+          
+          // Record the starting line for this node
+          const startLine = lineCount;
           
           switch (node.type) {
             case 'startNode':
@@ -201,10 +235,12 @@ if __name__ == "__main__":
     print(f"Result: {result}")
 `;
 
-      return generatedCode;
+      return { code: generatedCode, nodeRanges: nodeRanges };
     };
 
-    setCode(generateCode());
+    const result = generateCode();
+    setCode(result.code);
+    setNodeCodeRanges(result.nodeRanges);
   }, [nodes, edges, graphName]);
 
   return (
@@ -218,7 +254,42 @@ if __name__ == "__main__":
       
       <div className="flex-grow overflow-auto custom-scrollbar border border-gray-200 rounded-md">
         <pre className="p-4 m-0 h-full bg-gray-50 text-sm font-mono whitespace-pre overflow-auto python-code">
-          {formatPythonCode(code)}
+          {code.split('\n').map((line, index) => {
+            const isHighlighted = highlightedLines.includes(index);
+            let highlightedLine = line;
+            
+            // Apply syntax highlighting
+            if (line.match(/#.*/)) {
+              highlightedLine = highlightedLine.replace(/#.*/, '<span class="comment">$&</span>');
+            }
+            if (line.match(/(['"]).+?\1/)) {
+              highlightedLine = highlightedLine.replace(/(['"]).+?\1/, '<span class="string">$&</span>');
+            }
+            if (line.match(/@[a-zA-Z_][a-zA-Z0-9_\.]*/)) {
+              highlightedLine = highlightedLine.replace(/@[a-zA-Z_][a-zA-Z0-9_\.]*/, '<span class="decorator">$&</span>');
+            }
+            if (line.match(/\b(def|class|import|from|return|if|else|elif|for|while|try|except|finally|with|as|in|is|not|and|or|True|False|None)\b/)) {
+              highlightedLine = highlightedLine.replace(/\b(def|class|import|from|return|if|else|elif|for|while|try|except|finally|with|as|in|is|not|and|or|True|False|None)\b/g, '<span class="keyword">$&</span>');
+            }
+            if (line.match(/\b([a-zA-Z_][a-zA-Z0-9_]*)(?=\s*\()/)) {
+              highlightedLine = highlightedLine.replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)(?=\s*\()/g, '<span class="function">$&</span>');
+            }
+            if (line.match(/\b([A-Z][a-zA-Z0-9_]*)\b/)) {
+              highlightedLine = highlightedLine.replace(/\b([A-Z][a-zA-Z0-9_]*)\b/g, '<span class="class-name">$&</span>');
+            }
+            if (line.match(/\b\d+(\.\d+)?\b/)) {
+              highlightedLine = highlightedLine.replace(/\b\d+(\.\d+)?\b/g, '<span class="number">$&</span>');
+            }
+            
+            return (
+              <div 
+                key={index} 
+                id={`code-line-${index}`}
+                className={`line ${isHighlighted ? 'highlighted' : ''}`}
+                dangerouslySetInnerHTML={{ __html: highlightedLine }}
+              />
+            );
+          })}
         </pre>
       </div>
       
