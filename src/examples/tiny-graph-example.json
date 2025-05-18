@@ -1,0 +1,78 @@
+{
+  "nodes": [
+    {
+      "id": "llmNode-1",
+      "type": "llmNode",
+      "position": { "x": 250, "y": 100 },
+      "data": {
+        "label": "Query Processor",
+        "model": "gpt-4",
+        "temperature": 0.7
+      }
+    },
+    {
+      "id": "toolNode-1",
+      "type": "toolNode",
+      "position": { "x": 250, "y": 250 },
+      "data": {
+        "label": "Web Search",
+        "toolName": "search_web",
+        "parameters": {
+          "query": "$input"
+        }
+      }
+    },
+    {
+      "id": "decisionNode-1",
+      "type": "decisionNode",
+      "position": { "x": 250, "y": 400 },
+      "data": {
+        "label": "Need More Info?",
+        "condition": "$confidence < 0.8",
+        "branches": ["yes", "no"]
+      }
+    },
+    {
+      "id": "endNode-1",
+      "type": "endNode",
+      "position": { "x": 450, "y": 400 },
+      "data": {
+        "label": "Final Response",
+        "outputFormat": "markdown"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1-2",
+      "source": "llmNode-1",
+      "target": "toolNode-1",
+      "animated": true,
+      "style": { "stroke": "#3b82f6", "strokeWidth": 2 }
+    },
+    {
+      "id": "e2-3",
+      "source": "toolNode-1",
+      "target": "decisionNode-1",
+      "animated": true,
+      "style": { "stroke": "#3b82f6", "strokeWidth": 2 }
+    },
+    {
+      "id": "e3-4",
+      "source": "decisionNode-1",
+      "target": "endNode-1",
+      "sourceHandle": "true",
+      "animated": true,
+      "style": { "stroke": "#3b82f6", "strokeWidth": 2 }
+    },
+    {
+      "id": "e3-1",
+      "source": "decisionNode-1",
+      "target": "llmNode-1",
+      "sourceHandle": "false",
+      "animated": true,
+      "style": { "stroke": "#3b82f6", "strokeWidth": 2 }
+    }
+  ],
+  "graphName": "Simple Agent Workflow"
+}
