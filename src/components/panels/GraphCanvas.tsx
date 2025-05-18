@@ -35,6 +35,8 @@ import MemoryWriteNode from '../nodes/MemoryWriteNode';
 import ParallelForkNode from '../nodes/ParallelForkNode';
 import ParallelJoinNode from '../nodes/ParallelJoinNode';
 import LoopNode from '../nodes/LoopNode';
+import ErrorRetryNode from '../nodes/ErrorRetryNode';
+import TimeoutGuardNode from '../nodes/TimeoutGuardNode';
 
 // JSON Import/Export Modal
 import JSONModal from '../modals/JSONModal';
@@ -52,6 +54,8 @@ const nodeTypes: NodeTypes = {
   parallelForkNode: ParallelForkNode,
   parallelJoinNode: ParallelJoinNode,
   loopNode: LoopNode,
+  errorRetryNode: ErrorRetryNode,
+  timeoutGuardNode: TimeoutGuardNode,
 };
 
 // Node palette items
@@ -108,6 +112,18 @@ const nodeTemplates = [
     label: 'Loop Node',
     description: 'Create cyclic execution patterns with exit conditions',
     className: 'bg-amber-100 border-amber-500',
+  },
+  {
+    type: 'errorRetryNode',
+    label: 'Error Retry',
+    description: 'Automatically retry operations that fail with configurable backoff',
+    className: 'bg-orange-100 border-orange-500',
+  },
+  {
+    type: 'timeoutGuardNode',
+    label: 'Timeout Guard',
+    description: 'Protect against long-running operations with timeout policies',
+    className: 'bg-purple-100 border-purple-500',
   },
   {
     type: 'toolNode',

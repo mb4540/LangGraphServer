@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { IconRefresh, IconAlertTriangle, IconClock } from '@/components/ui/icons';
 import useGraphStore from '@/store/graphStore';
 import { Edge } from 'reactflow';
 import { 
@@ -1498,6 +1499,295 @@ const DetailPanel: React.FC = () => {
                 <li>Connect the <span className="text-red-600 font-medium">exit</span> handle to nodes after the loop</li>
                 <li>The loop will continue until your condition returns false</li>
                 <li>Use max iterations to prevent infinite loops</li>
+              </ul>
+            </div>
+          </>
+        );
+
+      case 'errorRetryNode':
+        return (
+          <>
+            <div className="p-3 bg-orange-50 rounded-md border border-orange-200 text-sm text-orange-800 mb-4">
+              <h3 className="font-medium flex items-center">
+                <IconAlertTriangle className="h-4 w-4 mr-1" />
+                Error Retry Node
+              </h3>
+              <p className="text-xs text-gray-700 mt-1">
+                Error Retry nodes automatically reattempt operations that fail with configurable backoff policies.
+              </p>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Maximum Retries</label>
+              <Controller
+                name="maxRetries"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    type="number"
+                    min="1"
+                    {...field}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value, 10);
+                      if (value >= 1) {
+                        field.onChange(value);
+                        handleFieldChange('maxRetries', value);
+                      }
+                    }}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  />
+                )}
+              />
+              {errors.maxRetries && (
+                <span className="text-red-500 text-xs">{errors.maxRetries.message as string}</span>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Maximum number of retry attempts before failing
+              </p>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Backoff Type</label>
+              <Controller
+                name="backoffType"
+                control={control}
+                render={({ field }) => (
+                  <select
+                    {...field}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    onChange={(e) => {
+                      field.onChange(e.target.value);
+                      handleFieldChange('backoffType', e.target.value);
+                    }}
+                  >
+                    <option value="constant">Constant (fixed delay)</option>
+                    <option value="linear">Linear (increases linearly)</option>
+                    <option value="exponential">Exponential (doubles each retry)</option>
+                  </select>
+                )}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                How delay should increase between retry attempts
+              </p>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Initial Delay (ms)</label>
+              <Controller
+                name="initialDelayMs"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    type="number"
+                    min="100"
+                    step="100"
+                    {...field}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value, 10);
+                      if (value >= 100) {
+                        field.onChange(value);
+                        handleFieldChange('initialDelayMs', value);
+                      }
+                    }}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  />
+                )}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Delay in milliseconds before the first retry
+              </p>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Maximum Delay (ms)</label>
+              <Controller
+                name="maxDelayMs"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    type="number"
+                    min="1000"
+                    step="1000"
+                    {...field}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value, 10);
+                      if (value >= 1000) {
+                        field.onChange(value);
+                        handleFieldChange('maxDelayMs', value);
+                      }
+                    }}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  />
+                )}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Maximum delay in milliseconds between retries
+              </p>
+            </div>
+            
+            <div className="mb-4">
+              <Controller
+                name="jitter"
+                control={control}
+                render={({ field }) => (
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="jitterCheckbox"
+                      checked={field.value}
+                      onChange={(e) => {
+                        field.onChange(e.target.checked);
+                        handleFieldChange('jitter', e.target.checked);
+                      }}
+                      className="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                    />
+                    <label htmlFor="jitterCheckbox" className="ml-2 block text-sm font-medium text-gray-700">
+                      Add jitter to delays
+                    </label>
+                  </div>
+                )}
+              />
+              <p className="text-xs text-gray-500 mt-1 ml-6">
+                Add randomness to retry delays to prevent thundering herd problem
+              </p>
+            </div>
+            
+            <div className="p-3 bg-orange-50 rounded-md border border-orange-200 text-sm text-orange-700">
+              <p className="font-medium mb-1">How to use Error Retry</p>
+              <ul className="list-disc list-inside text-xs space-y-1">
+                <li>Connect input to the operation that might fail</li>
+                <li>Connect <span className="text-orange-600 font-medium">should_retry</span> handle back to the operation for retry flow</li>
+                <li>Connect <span className="text-green-600 font-medium">continue</span> handle to next steps when retries succeed or are exhausted</li>
+                <li>The state will include retry information you can use for logging and debugging</li>
+              </ul>
+            </div>
+          </>
+        );
+        
+      case 'timeoutGuardNode':
+        return (
+          <>
+            <div className="p-3 bg-purple-50 rounded-md border border-purple-200 text-sm text-purple-800 mb-4">
+              <h3 className="font-medium flex items-center">
+                <IconClock className="h-4 w-4 mr-1" />
+                Timeout Guard Node
+              </h3>
+              <p className="text-xs text-gray-700 mt-1">
+                Timeout Guard nodes protect against long-running operations by setting time limits.
+              </p>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Timeout (ms)</label>
+              <Controller
+                name="timeoutMs"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    type="number"
+                    min="1000"
+                    step="1000"
+                    {...field}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value, 10);
+                      if (value >= 1000) {
+                        field.onChange(value);
+                        handleFieldChange('timeoutMs', value);
+                      }
+                    }}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                )}
+              />
+              {errors.timeoutMs && (
+                <span className="text-red-500 text-xs">{errors.timeoutMs.message as string}</span>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Maximum execution time in milliseconds
+              </p>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">On Timeout Action</label>
+              <Controller
+                name="onTimeout"
+                control={control}
+                render={({ field }) => (
+                  <select
+                    {...field}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    onChange={(e) => {
+                      field.onChange(e.target.value);
+                      handleFieldChange('onTimeout', e.target.value);
+                    }}
+                  >
+                    <option value="error">Error (raise exception)</option>
+                    <option value="default">Default (use fallback value)</option>
+                    <option value="abort">Abort (terminate workflow)</option>
+                  </select>
+                )}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                What action to take when timeout is reached
+              </p>
+            </div>
+            
+            {watch('onTimeout') === 'default' && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Default Result</label>
+                <Controller
+                  name="defaultResult"
+                  control={control}
+                  render={({ field }) => (
+                    <textarea
+                      {...field}
+                      rows={2}
+                      placeholder="Default value to use when timeout occurs"
+                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      onBlur={(e) => {
+                        field.onBlur();
+                        handleFieldBlur('defaultResult', e.target.value);
+                      }}
+                    />
+                  )}
+                />
+              </div>
+            )}
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Heartbeat Interval (ms)</label>
+              <Controller
+                name="heartbeatIntervalMs"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    type="number"
+                    min="100"
+                    step="100"
+                    {...field}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value, 10);
+                      if (!value || value >= 100) {
+                        field.onChange(value || undefined);
+                        handleFieldChange('heartbeatIntervalMs', value || undefined);
+                      }
+                    }}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                )}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Optional: Interval for operation to report progress (prevents timeout if heartbeat is received)
+              </p>
+            </div>
+            
+            <div className="p-3 bg-purple-50 rounded-md border border-purple-200 text-sm text-purple-700">
+              <p className="font-medium mb-1">How to use Timeout Guard</p>
+              <ul className="list-disc list-inside text-xs space-y-1">
+                <li>Connect input to the top handle</li>
+                <li>Connect the <span className="text-green-600 font-medium">normal</span> handle to flow when execution completes in time</li>
+                <li>Connect the <span className="text-red-600 font-medium">expired</span> handle to fallback logic when timeout occurs</li>
+                <li>For long-running tasks, set an appropriate heartbeat interval</li>
               </ul>
             </div>
           </>

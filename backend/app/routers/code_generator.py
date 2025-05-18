@@ -690,45 +690,219 @@ def evaluate_condition(state):
 {% endif %}
 
 {% if node.type == 'errorRetryNode' %}
-# Create a retry handler for {{ node.id|replace('-', '_') }}
-{{ node.id|replace('-', '_') }}_retry_policy = RetryPolicy(
-    max_retries={{ node.data.maxRetries|default(3) }},
-    backoff_type="{{ node.data.backoffType|default('exponential') }}",
-    initial_delay={{ node.data.initialDelayMs|default(1000) }} / 1000.0,  # Convert ms to seconds
-    max_delay={{ node.data.maxDelayMs|default(30000) }} / 1000.0,  # Convert ms to seconds
-    jitter={{ 'true' if node.data.jitter|default(true) else 'false' }}
-)
+import time
+import random
+from math import exp
 
 # Create the retry handler function
 @graph.node
 def {{ node.id|replace('-', '_') }}(state: GraphState) -> Dict[str, Any]:
     """{{ node.data.label }} - Error Retry node with configurable policy"""
-    # Check if there's an error in the state
-    if state.get('errors', []):
-        # Get the last error
-        last_error = state['errors'][-1]
-        
-        # Decide whether to retry based on the retry policy
-        # In a real implementation, this would be handled by LangGraph's retry policy
-        return {
-            'should_retry': True,
-            'retry_count': state.get('retry_count', {}).get('{{ node.id|replace('-', '_') }}', 0) + 1
+    # Initialize retry state if not present
+    if 'retry_state' not in state:
+        state['retry_state'] = {}
+    
+    node_id = '{{ node.id|replace('-', '_') }}'
+    if node_id not in state['retry_state']:
+        state['retry_state'][node_id] = {
+            'attempts': 0,
+            'last_attempt_time': 0,
+            'errors': []
         }
     
-    # No error, just pass through the state
-    return state
+    retry_state = state['retry_state'][node_id]
+    
+    # Configuration
+    max_retries = {{ node.data.maxRetries|default(3) }}
+    initial_delay_ms = {{ node.data.initialDelayMs|default(1000) }}
+    max_delay_ms = {{ node.data.maxDelayMs|default(30000) }}
+    backoff_type = "{{ node.data.backoffType|default('exponential') }}"
+    use_jitter = {{ 'True' if node.data.jitter|default(true) else 'False' }}
+    
+    # Check if we've reached maximum retries
+    if retry_state['attempts'] >= max_retries:
+        print(f"Maximum retries ({max_retries}) reached for {node_id}")
+        return {
+            'should_retry': False,
+            **state
+        }
+    
+    # Check if there's an error in the state to handle
+    error_detected = False
+    error_message = None
+    
+    # Look for errors in state
+    if 'error' in state:
+        error_detected = True
+        error_message = state['error']
+    elif 'errors' in state and state['errors']:
+        error_detected = True
+        error_message = state['errors'][-1]
+    
+    if error_detected:
+        # Increment attempt counter
+        retry_state['attempts'] += 1
+        
+        # Calculate delay based on backoff strategy
+        delay_ms = calculate_retry_delay(
+            retry_state['attempts'],
+            initial_delay_ms,
+            max_delay_ms,
+            backoff_type,
+            use_jitter
+        )
+        
+        # Store error for tracking
+        if error_message:
+            retry_state['errors'].append(error_message)
+        
+        # Update last attempt time
+        current_time = time.time() * 1000  # Convert to ms
+        retry_state['last_attempt_time'] = current_time
+        
+        # Log retry information
+        print(f"Retry {retry_state['attempts']}/{max_retries} for {node_id} with {backoff_type} backoff. Delay: {delay_ms}ms")
+        
+        # Simulate waiting (in a real implementation, LangGraph would handle this)
+        # time.sleep(delay_ms / 1000.0)
+        
+        # Indicate that we should retry
+        return {
+            'should_retry': True,
+            'retry_attempt': retry_state['attempts'],
+            'retry_delay_ms': delay_ms,
+            'retry_state': state['retry_state'],
+            **state
+        }
+    
+    # No error detected, just pass through the state indicating no retry needed
+    return {
+        'should_retry': False,
+        **state
+    }
+
+# Helper function to calculate retry delay based on strategy
+def calculate_retry_delay(attempt, initial_delay_ms, max_delay_ms, backoff_type, use_jitter):
+    if backoff_type == 'constant':
+        delay = initial_delay_ms
+    elif backoff_type == 'linear':
+        delay = initial_delay_ms * attempt
+    else:  # exponential
+        delay = initial_delay_ms * (2 ** (attempt - 1))
+    
+    # Cap at max delay
+    delay = min(delay, max_delay_ms)
+    
+    # Add jitter if configured (prevents thundering herd)
+    if use_jitter:
+        jitter_factor = random.uniform(0.8, 1.2)
+        delay = delay * jitter_factor
+    
+    return delay
 {% endif %}
 
 {% if node.type == 'timeoutGuardNode' %}
+import time
+import threading
+
 @graph.node
 def {{ node.id|replace('-', '_') }}(state: GraphState) -> Dict[str, Any]:
     """{{ node.data.label }} - Timeout Guard node that interrupts long-running operations"""
-    # Timeout guards are typically implemented at the graph execution level
-    # rather than as nodes, so this is just a placeholder
-    # In a real implementation, this would be handled by LangGraph's timeout mechanisms
+    # Configuration
+    timeout_ms = {{ node.data.timeoutMs|default(60000) }}
+    on_timeout = "{{ node.data.onTimeout|default('error') }}"
+    default_result = "{{ node.data.defaultResult|default('') }}"
+    heartbeat_interval_ms = {{ node.data.heartbeatIntervalMs|default(0) }}
     
-    # Just pass through the state
-    return state
+    # Initialize timeout tracking if not present
+    if 'timeout_state' not in state:
+        state['timeout_state'] = {}
+    
+    node_id = '{{ node.id|replace('-', '_') }}'
+    if node_id not in state['timeout_state']:
+        state['timeout_state'][node_id] = {
+            'start_time': time.time() * 1000,  # ms
+            'last_heartbeat': time.time() * 1000,  # ms
+            'timed_out': False,
+            'operation_completed': False
+        }
+    
+    timeout_state = state['timeout_state'][node_id]
+    
+    # Check if we've already completed
+    if timeout_state.get('operation_completed', False):
+        # Operation completed normally
+        return {
+            'timeout_expired': False,
+            **state
+        }
+    
+    # Check if we've already timed out
+    if timeout_state.get('timed_out', False):
+        # We already timed out, handle according to policy
+        return handle_timeout(state, on_timeout, default_result, node_id)
+    
+    # Get current time
+    current_time = time.time() * 1000  # ms
+    elapsed_time = current_time - timeout_state['start_time']
+    
+    # Check if operation has timed out
+    if elapsed_time > timeout_ms:
+        # If using heartbeats, check if the heartbeat is still active
+        if heartbeat_interval_ms > 0:
+            time_since_heartbeat = current_time - timeout_state['last_heartbeat']
+            if time_since_heartbeat <= heartbeat_interval_ms * 2:  # Allow 2x heartbeat interval
+                # Heartbeat is active, reset timeout
+                timeout_state['start_time'] = current_time - (timeout_ms / 2)  # Give half the original timeout
+                print(f"Heartbeat received for {node_id}, extending timeout")
+                return {
+                    'timeout_expired': False,
+                    'timeout_state': state['timeout_state'],
+                    **state
+                }
+        
+        # Operation has timed out
+        timeout_state['timed_out'] = True
+        print(f"Operation timed out after {elapsed_time}ms for {node_id}")
+        return handle_timeout(state, on_timeout, default_result, node_id)
+    
+    # Operation is still within timeout, mark as completed
+    timeout_state['operation_completed'] = True
+    return {
+        'timeout_expired': False,
+        'timeout_state': state['timeout_state'],
+        **state
+    }
+
+# Helper function to handle timeout based on configured action
+def handle_timeout(state, on_timeout, default_result, node_id):
+    if on_timeout == 'error':
+        # Return error but continue execution
+        return {
+            'timeout_expired': True,
+            'error': f"Operation in {node_id} timed out",
+            'timeout_state': state['timeout_state'],
+            **state
+        }
+    elif on_timeout == 'default':
+        # Use default fallback value
+        return {
+            'timeout_expired': True,
+            'output': default_result,
+            'timeout_state': state['timeout_state'],
+            **state
+        }
+    else:  # 'abort'
+        # This would terminate the workflow in a real implementation
+        # For this simulation, we just return with an error
+        return {
+            'timeout_expired': True,
+            'abort': True,
+            'error': f"Workflow aborted due to timeout in {node_id}",
+            'timeout_state': state['timeout_state'],
+            **state
+        }
+    
 {% endif %}
 
 {% if node.type == 'humanPauseNode' %}

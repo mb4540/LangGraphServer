@@ -268,9 +268,49 @@ export function validateEdgeConnection(sourceType: string, targetType: string, s
     }
   }
   
-  // Prevent direct cycles (self-loops) for all nodes except loop nodes
-  // We only allow cycles through the loop.continue handle
-  if (sourceType === targetType && sourceType !== 'loopNode' && !sourceHandle?.includes('loop')) {
+  // Error-Retry node specific validation
+  if (sourceType === 'errorRetryNode') {
+    if (sourceHandle) {
+      // should_retry handle should connect back to the node that might fail
+      // This creates the retry loop
+      if (sourceHandle === 'should_retry') {
+        return targetType !== 'startNode' && targetType !== 'endNode';
+      }
+      
+      // continue handle should connect to the next step when retries succeed or are exhausted
+      if (sourceHandle === 'continue') {
+        return targetType !== 'startNode';
+      }
+    }
+  }
+  
+  // Timeout Guard node specific validation
+  if (sourceType === 'timeoutGuardNode') {
+    if (sourceHandle) {
+      // normal handle should connect to the flow when execution completes in time
+      if (sourceHandle === 'normal') {
+        return targetType !== 'startNode';
+      }
+      
+      // expired handle should connect to fallback logic when timeout occurs
+      if (sourceHandle === 'expired') {
+        return targetType !== 'startNode';
+      }
+    }
+  }
+  
+  // Prevent direct cycles (self-loops) for most nodes
+  // We only allow cycles through specific handles
+  if (sourceType === targetType) {
+    // Allow loop.continue handle for loop nodes
+    if (sourceType === 'loopNode' && sourceHandle === 'loop.continue') {
+      return true;
+    }
+    // Allow should_retry handle for error retry nodes
+    if (sourceType === 'errorRetryNode' && sourceHandle === 'should_retry') {
+      return true;
+    }
+    // Prevent other self-loops
     return false;
   }
   
