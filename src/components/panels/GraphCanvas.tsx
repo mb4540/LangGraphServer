@@ -23,6 +23,8 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import useGraphStore from '@/store/graphStore';
 import { validateEdgeConnection } from '@/utils/schemaUtils';
+import NodeInfoModal from '../modals/NodeInfoModal';
+import nodeInfoData from '@/data/nodeInfoData';
 
 // Import custom node types
 import LLMNode from '../nodes/LLMNode';
@@ -173,10 +175,14 @@ const GraphCanvas: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(storeEdges);
   
-  // State for JSON import/export modal
+  // State for modals
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'import' | 'export'>('import');
   const [jsonContent, setJsonContent] = useState('');
+  
+  // State for node info modal
+  const [isNodeInfoModalOpen, setIsNodeInfoModalOpen] = useState(false);
+  const [selectedNodeType, setSelectedNodeType] = useState<string | null>(null);
   
   // Refs
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -358,18 +364,27 @@ const GraphCanvas: React.FC = () => {
       
       <div className="flex-1 flex">
         {/* Node Palette */}
-        <div className="w-48 bg-white shadow-md rounded-l-md overflow-auto p-3">
+        <div className="w-48 bg-white shadow-md rounded-l-md overflow-auto p-3 custom-scrollbar">
           <h3 className="font-medium text-sm text-gray-700 mb-2">Node Types</h3>
           <div className="space-y-2">
             {nodeTemplates.map((template) => (
               <div
                 key={template.type}
-                className={`p-2 rounded border ${template.className} cursor-grab`}
+                className={`h-10 p-2 rounded border ${template.className} cursor-grab relative flex items-center justify-between`}
                 draggable
                 onDragStart={(e) => onDragStart(e, template.type, template.label)}
               >
-                <div className="text-sm font-medium">{template.label}</div>
-                <div className="text-xs text-gray-600">{template.description}</div>
+                <div className="text-sm font-medium truncate pr-6">{template.label}</div>
+                <button
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 w-6 h-6 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-700 focus:outline-none"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedNodeType(template.type);
+                    setIsNodeInfoModalOpen(true);
+                  }}
+                >
+                  <span className="text-xs font-bold">i</span>
+                </button>
               </div>
             ))}
           </div>
@@ -405,7 +420,24 @@ const GraphCanvas: React.FC = () => {
           mode={modalMode}
           content={jsonContent}
           onClose={() => setIsModalOpen(false)}
-          onSubmit={modalMode === 'import' ? processImportedJSON : undefined}
+          onImport={handleImportJSON}
+          onContentChange={setJsonContent}
+        />
+      )}
+      
+      {/* Node Info Modal */}
+      {isNodeInfoModalOpen && selectedNodeType && (
+        <NodeInfoModal
+          isOpen={isNodeInfoModalOpen}
+          onClose={() => setIsNodeInfoModalOpen(false)}
+          nodeType={selectedNodeType}
+          nodeInfo={nodeInfoData.find(info => info.type === selectedNodeType) || {
+            type: selectedNodeType,
+            label: 'Unknown Node',
+            description: 'No information available for this node type.',
+            parameters: [],
+            className: ''
+          }}
         />
       )}
     </div>
