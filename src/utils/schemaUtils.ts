@@ -177,9 +177,14 @@ export function getEdgeSchema(): z.ZodObject<any> {
 
 // Edge validation rules
 export function validateEdgeConnection(sourceType: string, targetType: string): boolean {
-  // START node must be the source of the first edge and can only have one outgoing edge
+  // START nodes must not be the target of any edge
+  if (targetType === 'startNode') {
+    return false; // START nodes cannot have incoming edges
+  }
+  
+  // START node can connect to any node type except itself
   if (sourceType === 'startNode') {
-    return true; // Allow connections from START to any node except itself
+    return targetType !== 'startNode'; // Prevent self-loops
   }
   
   // END node cannot have outgoing edges
@@ -188,10 +193,10 @@ export function validateEdgeConnection(sourceType: string, targetType: string): 
   }
   
   // Parallel Fork must have at least two outgoing edges
-  // This is handled in the UI logic, not in this validation function
+  // This is handled in the graph validation logic, not in this edge validation function
   
   // Parallel Join must have at least two incoming edges
-  // This is handled in the UI logic, not in this validation function
+  // This is handled in the graph validation logic, not in this edge validation function
   
   // All other connections are allowed by default
   return true;

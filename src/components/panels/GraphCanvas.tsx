@@ -30,12 +30,14 @@ import LLMNode from '../nodes/LLMNode';
 import ToolNode from '../nodes/ToolNode';
 import DecisionNode from '../nodes/DecisionNode';
 import EndNode from '../nodes/EndNode';
+import StartNode from '../nodes/StartNode';
 
 // JSON Import/Export Modal
 import JSONModal from '../modals/JSONModal';
 
 // Define node types
 const nodeTypes: NodeTypes = {
+  startNode: StartNode,
   llmNode: LLMNode,
   toolNode: ToolNode,
   decisionNode: DecisionNode,
@@ -44,6 +46,12 @@ const nodeTypes: NodeTypes = {
 
 // Node palette items
 const nodeTemplates = [
+  {
+    type: 'startNode',
+    label: 'START Node',
+    description: 'Required entry point of the graph',
+    className: 'bg-emerald-100 border-emerald-500',
+  },
   {
     type: 'llmNode',
     label: 'LLM Node',
@@ -64,7 +72,7 @@ const nodeTemplates = [
   },
   {
     type: 'endNode',
-    label: 'End Node',
+    label: 'END Node',
     description: 'Graph termination',
     className: 'bg-red-100 border-red-500',
   },

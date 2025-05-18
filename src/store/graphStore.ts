@@ -119,6 +119,8 @@ const ERROR_MESSAGES = {
   START_NODE_EXISTS: 'A graph can only have one START node',
   INVALID_CONNECTION: 'This connection is not allowed',
   START_REQUIRED: 'A graph must have a START node',
+  START_NO_INCOMING: 'START nodes cannot have incoming edges',
+  START_ONE_OUTGOING: 'START node must have exactly one outgoing edge',
   EDGE_FROM_END: 'END nodes cannot have outgoing edges',
   DUPLICATE_EDGE: 'This connection already exists',
   SELF_CONNECTION: 'A node cannot connect to itself',
@@ -353,6 +355,19 @@ export const useGraphStore = create<GraphState>()(
         }
         if (startNodes.length > 1) {
           return { valid: false, message: ERROR_MESSAGES.START_NODE_EXISTS };
+        }
+        
+        // Validate START node has exactly one outgoing edge and no incoming edges
+        const startNodeId = startNodes[0].id;
+        const startNodeOutgoingEdges = state.edges.filter(e => e.source === startNodeId);
+        const startNodeIncomingEdges = state.edges.filter(e => e.target === startNodeId);
+        
+        if (startNodeOutgoingEdges.length !== 1) {
+          return { valid: false, message: ERROR_MESSAGES.START_ONE_OUTGOING };
+        }
+        
+        if (startNodeIncomingEdges.length > 0) {
+          return { valid: false, message: ERROR_MESSAGES.START_NO_INCOMING };
         }
         
         // Validate no outgoing edges from END nodes
