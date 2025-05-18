@@ -322,11 +322,25 @@ const GraphCanvas: React.FC = () => {
     event.dataTransfer.effectAllowed = 'move';
   };
   
+  // Handle clearing the graph
+  const handleClearGraph = useCallback(() => {
+    if (window.confirm('Are you sure you want to clear the graph? This action cannot be undone.')) {
+      setNodes([]);
+      setEdges([]);
+    }
+  }, [setNodes, setEdges]);
+  
   return (
     <div className="h-full p-4 bg-gray-100 flex flex-col">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-bold">Graph Canvas: {graphName}</h2>
         <div className="flex space-x-2">
+          <button
+            onClick={handleClearGraph}
+            className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors"
+          >
+            Clear Graph
+          </button>
           <button
             onClick={handleImportGraph}
             className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
