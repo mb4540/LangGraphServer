@@ -4,7 +4,8 @@ from sqlmodel import Field, SQLModel, Relationship, create_engine, Session
 import os
 
 # Get database URL from environment variable or use a default
-DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres:postgres@db:5432/langgraph")
+# Using SQLite for local development
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./langgraph.db")
 
 # Create SQLModel classes
 class Base(SQLModel):
