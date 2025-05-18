@@ -21,6 +21,7 @@ interface GraphState {
   nodes: Node[];
   edges: Edge[];
   selectedNodeId: string | null;
+  selectedEdgeId: string | null;
   graphName: string;
   
   // Actions
@@ -30,8 +31,10 @@ interface GraphState {
   updateNode: (id: string, data: Partial<Node>) => void;
   removeNode: (id: string) => void;
   addEdge: (edge: Edge) => void;
+  updateEdge: (id: string, data: Partial<Edge>) => void;
   removeEdge: (id: string) => void;
   setSelectedNodeId: (id: string | null) => void;
+  setSelectedEdgeId: (id: string | null) => void;
   setGraphName: (name: string) => void;
   clearGraph: () => void;
 }
@@ -44,6 +47,7 @@ const useGraphStore = create<GraphState>()(
       nodes: [],
       edges: [],
       selectedNodeId: null,
+      selectedEdgeId: null,
       graphName: 'Untitled Graph',
       
       // Actions
@@ -62,12 +66,32 @@ const useGraphStore = create<GraphState>()(
         ),
       })),
       addEdge: (edge) => set((state) => ({ edges: [...state.edges, edge] })),
+      updateEdge: (id, data) => set((state) => ({
+        edges: state.edges.map((edge) =>
+          edge.id === id ? { ...edge, ...data } : edge
+        ),
+      })),
       removeEdge: (id) => set((state) => ({
         edges: state.edges.filter((edge) => edge.id !== id),
       })),
-      setSelectedNodeId: (id) => set({ selectedNodeId: id }),
+      setSelectedNodeId: (id) => set({
+        selectedNodeId: id,
+        // Deselect edge when selecting a node
+        selectedEdgeId: null,
+      }),
+      setSelectedEdgeId: (id) => set({
+        selectedEdgeId: id,
+        // Deselect node when selecting an edge
+        selectedNodeId: null,
+      }),
       setGraphName: (graphName) => set({ graphName }),
-      clearGraph: () => set({ nodes: [], edges: [], selectedNodeId: null, graphName: 'Untitled Graph' }),
+      clearGraph: () => set({
+        nodes: [],
+        edges: [],
+        selectedNodeId: null,
+        selectedEdgeId: null,
+        graphName: 'Untitled Graph'
+      }),
     }),
     {
       name: 'langgraph-storage',
