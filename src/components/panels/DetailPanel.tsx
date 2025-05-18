@@ -85,6 +85,214 @@ const DetailPanel: React.FC = () => {
     if (!selectedNode) return null;
     
     switch (selectedNode.type) {
+      case 'agentNode':
+        return (
+          <>
+            <div className="bg-purple-50 p-3 mb-4 rounded-md border border-purple-200">
+              <h3 className="font-medium text-purple-800 flex items-center">
+                <span className="mr-2 bg-purple-500 text-white px-2 py-0.5 text-xs rounded-full">
+                  {selectedNode.data.agentType?.toUpperCase() || 'AGENT'}
+                </span>
+                Agent Node Configuration
+              </h3>
+              <p className="text-xs text-gray-700 mt-1">
+                Agent nodes wrap LLMs with complex behaviors like tool-calling and reasoning.
+              </p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Agent Type</label>
+              <Controller
+                name="agentType"
+                control={control}
+                render={({ field }) => (
+                  <select
+                    {...field}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    onBlur={(e) => {
+                      field.onBlur();
+                      handleFieldBlur('agentType', e.target.value);
+                    }}
+                  >
+                    <option value="llm">Basic LLM</option>
+                    <option value="react">ReAct (Tool Calling)</option>
+                    <option value="planAndExecute">Plan and Execute</option>
+                  </select>
+                )}
+              />
+              {errors.agentType && (
+                <span className="text-red-500 text-xs">{errors.agentType.message as string}</span>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Different agent types have distinct behaviors and capabilities.
+              </p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Model Name</label>
+              <Controller
+                name="modelName"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="text"
+                    placeholder="e.g., gpt-4, gpt-3.5-turbo, anthropic/claude-3"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    onBlur={(e) => {
+                      field.onBlur();
+                      handleFieldBlur('modelName', e.target.value);
+                    }}
+                  />
+                )}
+              />
+              {errors.modelName && (
+                <span className="text-red-500 text-xs">{errors.modelName.message as string}</span>
+              )}
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Temperature</label>
+              <Controller
+                name="temperature"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="1"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      field.onChange(value);
+                    }}
+                    onBlur={(e) => {
+                      field.onBlur();
+                      handleFieldBlur('temperature', parseFloat(e.target.value));
+                    }}
+                  />
+                )}
+              />
+              {errors.temperature && (
+                <span className="text-red-500 text-xs">{errors.temperature.message as string}</span>
+              )}
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Max Tokens</label>
+              <Controller
+                name="maxTokens"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="number"
+                    min="1"
+                    max="32000"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    onChange={(e) => {
+                      const value = e.target.value ? parseInt(e.target.value) : undefined;
+                      field.onChange(value);
+                    }}
+                    onBlur={(e) => {
+                      field.onBlur();
+                      const value = e.target.value ? parseInt(e.target.value) : undefined;
+                      handleFieldBlur('maxTokens', value);
+                    }}
+                  />
+                )}
+              />
+              {errors.maxTokens && (
+                <span className="text-red-500 text-xs">{errors.maxTokens.message as string}</span>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Available Tools</label>
+              <Controller
+                name="tools"
+                control={control}
+                render={({ field }) => (
+                  <textarea
+                    {...field}
+                    placeholder="Enter tool names separated by commas"
+                    rows={2}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    onChange={(e) => {
+                      // Split by commas and trim whitespace
+                      const toolsList = e.target.value
+                        .split(',')
+                        .map(tool => tool.trim())
+                        .filter(tool => tool.length > 0);
+                      field.onChange(toolsList);
+                    }}
+                    value={field.value ? field.value.join(', ') : ''}
+                    onBlur={(e) => {
+                      field.onBlur();
+                      const toolsList = e.target.value
+                        .split(',')
+                        .map(tool => tool.trim())
+                        .filter(tool => tool.length > 0);
+                      handleFieldBlur('tools', toolsList);
+                    }}
+                  />
+                )}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                For ReAct agents, specify which tools this agent can use.
+              </p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">System Prompt</label>
+              <Controller
+                name="systemPrompt"
+                control={control}
+                render={({ field }) => (
+                  <textarea
+                    {...field}
+                    rows={5}
+                    placeholder="Instructions for the agent"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    onBlur={(e) => {
+                      field.onBlur();
+                      handleFieldBlur('systemPrompt', e.target.value);
+                    }}
+                  />
+                )}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                System instructions that define how the agent behaves and processes input.
+              </p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Stop Condition</label>
+              <Controller
+                name="stopCondition"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="text"
+                    placeholder="Optional stopping criteria"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    onBlur={(e) => {
+                      field.onBlur();
+                      handleFieldBlur('stopCondition', e.target.value);
+                    }}
+                  />
+                )}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Optional condition that determines when to stop agent execution.
+              </p>
+            </div>
+          </>
+        );
+        
       case 'llmNode':
         return (
           <>

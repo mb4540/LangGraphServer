@@ -31,6 +31,7 @@ import ToolNode from '../nodes/ToolNode';
 import DecisionNode from '../nodes/DecisionNode';
 import EndNode from '../nodes/EndNode';
 import StartNode from '../nodes/StartNode';
+import AgentNode from '../nodes/AgentNode';
 
 // JSON Import/Export Modal
 import JSONModal from '../modals/JSONModal';
@@ -39,6 +40,7 @@ import JSONModal from '../modals/JSONModal';
 const nodeTypes: NodeTypes = {
   startNode: StartNode,
   llmNode: LLMNode,
+  agentNode: AgentNode,
   toolNode: ToolNode,
   decisionNode: DecisionNode,
   endNode: EndNode,
@@ -57,6 +59,12 @@ const nodeTemplates = [
     label: 'LLM Node',
     description: 'Language model inference',
     className: 'bg-blue-100 border-blue-500',
+  },
+  {
+    type: 'agentNode',
+    label: 'Agent Node',
+    description: 'LLM agent with tool calling',
+    className: 'bg-purple-100 border-purple-500',
   },
   {
     type: 'toolNode',
