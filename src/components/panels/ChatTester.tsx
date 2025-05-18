@@ -17,6 +17,7 @@ const ChatTester: React.FC = () => {
   const [runId, setRunId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [socket, setSocket] = useState<WebSocket | null>(null);
+  const [activeTab, setActiveTab] = useState<'chat' | 'terminal'>('chat');
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { nodes, edges, graphName } = useGraph();
@@ -260,10 +261,28 @@ const ChatTester: React.FC = () => {
   
   return (
     <div className="h-full flex flex-col p-4 bg-white shadow-inner">
-      {/* Header with controls */}
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-bold">Chat Tester</h2>
-        <div className="flex space-x-2">
+      {/* Tabs */}
+      <div className="flex border-b border-gray-200 mb-4">
+        <button
+          className={`px-4 py-2 font-medium ${activeTab === 'chat' ? 'text-blue-600 border-b-2 border-blue-500' : 'text-gray-500 hover:text-gray-700'}`}
+          onClick={() => setActiveTab('chat')}
+        >
+          Chat Tester
+        </button>
+        <button
+          className={`px-4 py-2 font-medium ${activeTab === 'terminal' ? 'text-blue-600 border-b-2 border-blue-500' : 'text-gray-500 hover:text-gray-700'}`}
+          onClick={() => setActiveTab('terminal')}
+        >
+          Terminal & Setup
+        </button>
+      </div>
+
+      {activeTab === 'chat' ? (
+        <>
+          {/* Header with controls */}
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-bold">Chat Tester</h2>
+            <div className="flex space-x-2">
           <button
             onClick={buildAndRun}
             disabled={status === 'building' || status === 'running'}
@@ -341,6 +360,48 @@ const ChatTester: React.FC = () => {
           Send
         </button>
       </div>
+        </>
+      ) : (
+        <div className="flex flex-col h-full">
+          <div className="mb-4">
+            <h2 className="text-lg font-bold mb-2">How to Start All Services</h2>
+            <div className="bg-gray-100 p-4 rounded-md">
+              <h3 className="text-md font-semibold mb-2">1. Start the Backend Server</h3>
+              <p className="mb-3">Open a terminal in the project root directory and run:</p>
+              <div className="bg-gray-800 text-white p-3 rounded font-mono mb-4">
+                <p># Navigate to the backend directory</p>
+                <p>cd backend</p>
+                <p></p>
+                <p># Install Python dependencies (first time only)</p>
+                <p>pip install -r requirements.txt</p>
+                <p></p>
+                <p># Start the backend server</p>
+                <p>python run.py</p>
+              </div>
+              <p className="mb-1">The backend will be available at: <span className="font-mono">http://localhost:8000</span></p>
+              <p className="text-sm text-gray-600 mb-4">This runs the FastAPI server with hot-reloading enabled</p>
+              
+              <h3 className="text-md font-semibold mb-2">2. Start the Frontend Development Server</h3>
+              <p className="mb-3">Open another terminal in the project root directory and run:</p>
+              <div className="bg-gray-800 text-white p-3 rounded font-mono mb-4">
+                <p># Install npm dependencies (first time only)</p>
+                <p>npm install</p>
+                <p></p>
+                <p># Start the development server</p>
+                <p>npm run dev</p>
+              </div>
+              <p className="mb-1">The frontend will be available at: <span className="font-mono">http://localhost:3000</span></p>
+              <p className="text-sm text-gray-600">This runs the Next.js application with hot-reloading enabled</p>
+            </div>
+          </div>
+          
+          <div className="flex-1 bg-black text-green-400 p-4 rounded-md font-mono overflow-y-auto">
+            <p>$ Terminal emulation</p>
+            <p>$ Ready for commands...</p>
+            <p>$</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
