@@ -15,19 +15,23 @@ const nodeTypes = [
 
 export default function NodePanel({ onAddNode }: NodePanelProps) {
   return (
-    <div className="w-64 border-r p-4 bg-gray-50 overflow-auto">
-      <h3 className="text-lg font-semibold mb-4">Node Types</h3>
-      <div className="space-y-2">
-        {nodeTypes.map((nodeType) => (
-          <div
-            key={nodeType.type}
-            className="p-3 bg-white rounded-md shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => onAddNode(nodeType.type, nodeType.label)}
-          >
-            <div className="font-medium">{nodeType.label}</div>
-            <div className="text-xs text-gray-500">{nodeType.description}</div>
-          </div>
-        ))}
+    <div className="w-64 border-r bg-gray-50 flex flex-col h-full">
+      <div className="p-4 border-b bg-gray-50">
+        <h3 className="text-lg font-semibold">Node Types</h3>
+      </div>
+      <div className="p-4 overflow-y-auto flex-grow custom-scrollbar">
+        <div className="space-y-2">
+          {nodeTypes.map((nodeType) => (
+            <div
+              key={nodeType.type}
+              className="p-3 bg-white rounded-md shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => onAddNode(nodeType.type, nodeType.label)}
+            >
+              <div className="font-medium">{nodeType.label}</div>
+              <div className="text-xs text-gray-500">{nodeType.description}</div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
