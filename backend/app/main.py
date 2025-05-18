@@ -1,0 +1,27 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.routers import code_generator
+
+app = FastAPI(
+    title="LangGraph Server",
+    description="An API for generating and managing LangGraph workflows",
+    version="0.1.0"
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # For production, specify the actual origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include routers
+app.include_router(code_generator.router, prefix="/api")
+
+
+@app.get("/")
+async def root():
+    return {"message": "Welcome to LangGraph Server API"}
