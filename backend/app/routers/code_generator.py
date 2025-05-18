@@ -69,6 +69,7 @@ from langgraph.checkpoint import Checkpoint
 # Local imports
 from app.utils.tool_helpers import create_tool_executor
 from app.utils.tool_utils import get_tool_by_name, collect_available_tools
+from app.utils.memory_utils import read_memory, write_memory
 
 # LangChain imports
 from langchain_openai import ChatOpenAI
@@ -230,6 +231,42 @@ Task: {input_data}"
     response = llm.invoke(input_content)
     return {"output": response.content}
     {% endif %}
+{% endif %}
+
+{% if node.type == 'memoryReadNode' %}
+# Create Memory Read Node for {{ node.id|replace('-', '_') }}
+{{ node.id|replace('-', '_') }} = MemoryReadNode(
+    name="{{ node.data.label }}",
+    memory_type="{{ node.data.memoryType }}",
+    read_fn=lambda state: read_memory(
+        memory_type="{{ node.data.memoryType }}",
+        key={% if node.data.key %}"{{ node.data.key }}"{% else %}None{% endif %},
+        namespace={% if node.data.namespace %}"{{ node.data.namespace }}"{% else %}None{% endif %},
+        filter_expr={% if node.data.filter %}"{{ node.data.filter }}"{% else %}None{% endif %}
+    )
+)
+
+# Register the Memory Read Node with the graph
+graph.add_node({{ node.id|replace('-', '_') }})
+{% endif %}
+
+{% if node.type == 'memoryWriteNode' %}
+# Create Memory Write Node for {{ node.id|replace('-', '_') }}
+{{ node.id|replace('-', '_') }} = MemoryWriteNode(
+    name="{{ node.data.label }}",
+    memory_type="{{ node.data.memoryType }}",
+    write_fn=lambda state, value: write_memory(
+        memory_type="{{ node.data.memoryType }}",
+        key="{{ node.data.key }}",
+        value=value,
+        namespace={% if node.data.namespace %}"{{ node.data.namespace }}"{% else %}None{% endif %},
+        ttl={% if node.data.ttl %}{{ node.data.ttl }}{% else %}None{% endif %},
+        overwrite_existing={{ node.data.overwriteExisting|default(true) }}
+    )
+)
+
+# Register the Memory Write Node with the graph
+graph.add_node({{ node.id|replace('-', '_') }})
 {% endif %}
 
 {% if node.type == 'toolNode' %}

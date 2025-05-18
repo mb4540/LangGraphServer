@@ -32,6 +32,8 @@ import DecisionNode from '../nodes/DecisionNode';
 import EndNode from '../nodes/EndNode';
 import StartNode from '../nodes/StartNode';
 import AgentNode from '../nodes/AgentNode';
+import MemoryReadNode from '../nodes/MemoryReadNode';
+import MemoryWriteNode from '../nodes/MemoryWriteNode';
 
 // JSON Import/Export Modal
 import JSONModal from '../modals/JSONModal';
@@ -44,16 +46,33 @@ const nodeTypes: NodeTypes = {
   toolNode: ToolNode,
   decisionNode: DecisionNode,
   endNode: EndNode,
+  memoryReadNode: MemoryReadNode,
+  memoryWriteNode: MemoryWriteNode,
 };
 
 // Node palette items
 const nodeTemplates = [
+  // Core Flow Nodes
   {
     type: 'startNode',
     label: 'START Node',
     description: 'Required entry point of the graph',
     className: 'bg-emerald-100 border-emerald-500',
   },
+  {
+    type: 'endNode',
+    label: 'END Node',
+    description: 'Graph termination',
+    className: 'bg-red-100 border-red-500',
+  },
+  {
+    type: 'decisionNode',
+    label: 'Decision Node',
+    description: 'Conditional branching logic',
+    className: 'bg-yellow-100 border-yellow-500',
+  },
+  
+  // AI Nodes
   {
     type: 'llmNode',
     label: 'LLM Node',
@@ -72,17 +91,19 @@ const nodeTemplates = [
     description: 'External tool or API call',
     className: 'bg-green-100 border-green-500',
   },
+  
+  // Memory Nodes
   {
-    type: 'decisionNode',
-    label: 'Decision Node',
-    description: 'Conditional branching logic',
-    className: 'bg-yellow-100 border-yellow-500',
+    type: 'memoryReadNode',
+    label: 'Memory Read',
+    description: 'Retrieve data from memory',
+    className: 'bg-cyan-100 border-cyan-500',
   },
   {
-    type: 'endNode',
-    label: 'END Node',
-    description: 'Graph termination',
-    className: 'bg-red-100 border-red-500',
+    type: 'memoryWriteNode',
+    label: 'Memory Write',
+    description: 'Store data in memory',
+    className: 'bg-teal-100 border-teal-500',
   },
 ];
 

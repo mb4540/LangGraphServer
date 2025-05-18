@@ -672,13 +672,13 @@ const DetailPanel: React.FC = () => {
             <div className="bg-red-50 p-3 mb-4 rounded-md border border-red-200">
               <h3 className="font-medium text-red-800 flex items-center">
                 <span className="mr-2 bg-red-500 text-white px-2 py-0.5 text-xs rounded-full">END</span>
-                Terminal Node Configuration
+                End Node Configuration
               </h3>
               <p className="text-xs text-gray-700 mt-1">
-                END nodes mark successful graph termination and format the final output.
+                End nodes terminate graph execution and return the final output.
               </p>
             </div>
-          
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Output Format</label>
               <Controller
@@ -693,18 +693,12 @@ const DetailPanel: React.FC = () => {
                       handleFieldBlur('outputFormat', e.target.value);
                     }}
                   >
-                    <option value="text">Text</option>
                     <option value="json">JSON</option>
-                    <option value="markdown">Markdown</option>
+                    <option value="text">Text</option>
+                    <option value="binary">Binary</option>
                   </select>
                 )}
               />
-              {errors.outputFormat && (
-                <span className="text-red-500 text-xs">{errors.outputFormat.message as string}</span>
-              )}
-              <p className="text-xs text-gray-500 mt-1">
-                Determines how the final output is formatted when the graph completes.
-              </p>
             </div>
             
             <div>
@@ -715,8 +709,8 @@ const DetailPanel: React.FC = () => {
                 render={({ field }) => (
                   <textarea
                     {...field}
-                    placeholder="Optional transformation to apply to the final output"
-                    rows={4}
+                    rows={3}
+                    placeholder="Optional JavaScript expression to transform the output"
                     className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     onBlur={(e) => {
                       field.onBlur();
@@ -725,11 +719,8 @@ const DetailPanel: React.FC = () => {
                   />
                 )}
               />
-              {errors.finalTransform && (
-                <span className="text-red-500 text-xs">{errors.finalTransform.message as string}</span>
-              )}
               <p className="text-xs text-gray-500 mt-1">
-                Optional code or expression to transform the output before returning.
+                Optional JavaScript expression to transform the output before returning. Access the output with the 'result' variable.
               </p>
             </div>
             
@@ -755,6 +746,277 @@ const DetailPanel: React.FC = () => {
           </>
         );
       
+      case 'memoryReadNode':
+        return (
+          <>
+            <div className="bg-cyan-50 p-3 mb-4 rounded-md border border-cyan-200">
+              <h3 className="font-medium text-cyan-800 flex items-center">
+                <span className="mr-2 bg-cyan-500 text-white px-2 py-0.5 text-xs rounded-full">READ</span>
+                Memory Read Node
+              </h3>
+              <p className="text-xs text-gray-700 mt-1">
+                Memory Read nodes retrieve data from short-term or long-term memory stores.
+              </p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Memory Type</label>
+              <Controller
+                name="memoryType"
+                control={control}
+                render={({ field }) => (
+                  <select
+                    {...field}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                    onBlur={(e) => {
+                      field.onBlur();
+                      handleFieldBlur('memoryType', e.target.value);
+                    }}
+                  >
+                    <option value="short_term">Short-term (Current Thread)</option>
+                    <option value="long_term">Long-term (Persistent)</option>
+                  </select>
+                )}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Short-term memory only persists during graph execution, while long-term memory is persistent across runs.
+              </p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Memory Key</label>
+              <Controller
+                name="key"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="text"
+                    placeholder="e.g., user_profile, conversation_history"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                    onBlur={(e) => {
+                      field.onBlur();
+                      handleFieldBlur('key', e.target.value);
+                    }}
+                  />
+                )}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                The key used to identify the memory. Leave empty to retrieve all memory.
+              </p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Namespace</label>
+              <Controller
+                name="namespace"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="text"
+                    placeholder="e.g., user_123, session_456"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                    onBlur={(e) => {
+                      field.onBlur();
+                      handleFieldBlur('namespace', e.target.value);
+                    }}
+                  />
+                )}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Optional namespace to organize memories. Useful for multi-tenant applications.
+              </p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Filter Expression</label>
+              <Controller
+                name="filter"
+                control={control}
+                render={({ field }) => (
+                  <textarea
+                    {...field}
+                    rows={3}
+                    placeholder="Optional JavaScript expression to filter memories"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                    onBlur={(e) => {
+                      field.onBlur();
+                      handleFieldBlur('filter', e.target.value);
+                    }}
+                  />
+                )}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Optional expression to filter memories. Access the memory with the 'memory' variable.
+              </p>
+            </div>
+          </>
+        );
+        
+      case 'memoryWriteNode':
+        return (
+          <>
+            <div className="bg-teal-50 p-3 mb-4 rounded-md border border-teal-200">
+              <h3 className="font-medium text-teal-800 flex items-center">
+                <span className="mr-2 bg-teal-500 text-white px-2 py-0.5 text-xs rounded-full">WRITE</span>
+                Memory Write Node
+              </h3>
+              <p className="text-xs text-gray-700 mt-1">
+                Memory Write nodes store data in short-term or long-term memory.
+              </p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Memory Type</label>
+              <Controller
+                name="memoryType"
+                control={control}
+                render={({ field }) => (
+                  <select
+                    {...field}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    onBlur={(e) => {
+                      field.onBlur();
+                      handleFieldBlur('memoryType', e.target.value);
+                    }}
+                  >
+                    <option value="short_term">Short-term (Current Thread)</option>
+                    <option value="long_term">Long-term (Persistent)</option>
+                  </select>
+                )}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Short-term memory only persists during graph execution, while long-term memory is persistent across runs.
+              </p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Memory Key</label>
+              <Controller
+                name="key"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="text"
+                    placeholder="e.g., user_profile, conversation_history"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    onBlur={(e) => {
+                      field.onBlur();
+                      handleFieldBlur('key', e.target.value);
+                    }}
+                  />
+                )}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                The key used to identify the memory.
+              </p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Namespace</label>
+              <Controller
+                name="namespace"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="text"
+                    placeholder="e.g., user_123, session_456"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    onBlur={(e) => {
+                      field.onBlur();
+                      handleFieldBlur('namespace', e.target.value);
+                    }}
+                  />
+                )}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Optional namespace to organize memories. Useful for multi-tenant applications.
+              </p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Storage Format</label>
+              <Controller
+                name="storageFormat"
+                control={control}
+                render={({ field }) => (
+                  <select
+                    {...field}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    onBlur={(e) => {
+                      field.onBlur();
+                      handleFieldBlur('storageFormat', e.target.value);
+                    }}
+                  >
+                    <option value="json">JSON</option>
+                    <option value="text">Text</option>
+                    <option value="binary">Binary</option>
+                  </select>
+                )}
+              />
+            </div>
+            
+            <div className="mt-3">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Time-to-Live (TTL) in seconds</label>
+              <Controller
+                name="ttl"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="number"
+                    min="0"
+                    placeholder="Leave empty for no expiration"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    onChange={(e) => {
+                      const value = e.target.value ? parseInt(e.target.value) : undefined;
+                      field.onChange(value);
+                    }}
+                    onBlur={(e) => {
+                      field.onBlur();
+                      const value = e.target.value ? parseInt(e.target.value) : undefined;
+                      handleFieldBlur('ttl', value);
+                    }}
+                  />
+                )}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Optional time-to-live in seconds. After this period, the memory will be automatically deleted. Only applicable for long-term memory.
+              </p>
+            </div>
+            
+            <div className="mt-3">
+              <Controller
+                name="overwriteExisting"
+                control={control}
+                render={({ field }) => (
+                  <div className="flex items-center">
+                    <input
+                      id="overwriteExisting"
+                      type="checkbox"
+                      checked={field.value}
+                      onChange={(e) => {
+                        field.onChange(e.target.checked);
+                        handleFieldBlur('overwriteExisting', e.target.checked);
+                      }}
+                      className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="overwriteExisting" className="ml-2 block text-sm text-gray-700">
+                      Overwrite existing memory if key exists
+                    </label>
+                  </div>
+                )}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                If unchecked, the node will append to existing memory instead of overwriting it.
+              </p>
+            </div>
+          </>
+        );
+        
       default:
         return (
           <div className="text-sm text-gray-500">

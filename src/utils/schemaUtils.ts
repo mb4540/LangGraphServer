@@ -48,16 +48,21 @@ export const toolNodeSchema = baseNodeSchema.extend({
 
 // Memory Read Node Schema - Reads from short-term or long-term memory
 export const memoryReadNodeSchema = baseNodeSchema.extend({
-  memoryType: z.enum(['thread', 'longTerm']).default('thread'),
-  key: z.string().min(1, 'Memory key is required'),
+  memoryType: z.enum(['short_term', 'long_term']).default('short_term'),
+  key: z.string().optional(),
+  namespace: z.string().optional(),
+  ttl: z.number().int().positive().optional(),
   filter: z.string().optional(),
 });
 
-// Memory Write Node Schema - Appends to short-term or long-term memory
+// Memory Write Node Schema - Writes to short-term or long-term memory
 export const memoryWriteNodeSchema = baseNodeSchema.extend({
-  memoryType: z.enum(['thread', 'longTerm']).default('thread'),
-  key: z.string().min(1, 'Memory key is required'),
-  valueExpression: z.string().min(1, 'Value expression is required'),
+  memoryType: z.enum(['short_term', 'long_term']).default('short_term'),
+  key: z.string().optional(),
+  namespace: z.string().optional(),
+  ttl: z.number().int().positive().optional(),
+  storageFormat: z.enum(['json', 'text', 'binary']).default('json'),
+  overwriteExisting: z.boolean().default(true),
 });
 
 // ============ CONTROL-FLOW / ORCHESTRATION NODES ============
