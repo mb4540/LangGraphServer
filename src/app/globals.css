@@ -49,3 +49,57 @@ body {
   scrollbar-width: thin;
   scrollbar-color: #c1c1c1 #f1f1f1;
 }
+
+/* Basic Python syntax highlighting */
+.python-code {
+  counter-reset: line;
+}
+
+.python-code .line {
+  display: block;
+  position: relative;
+  padding-left: 3.5rem;
+}
+
+.python-code .line:before {
+  counter-increment: line;
+  content: counter(line);
+  position: absolute;
+  left: 0;
+  width: 2.5rem;
+  color: #888;
+  text-align: right;
+  padding-right: 0.5rem;
+  border-right: 1px solid #ddd;
+  user-select: none;
+}
+
+.python-code .keyword {
+  color: #0000ff;
+  font-weight: bold;
+}
+
+.python-code .function {
+  color: #795e26;
+}
+
+.python-code .string {
+  color: #a31515;
+}
+
+.python-code .comment {
+  color: #008000;
+  font-style: italic;
+}
+
+.python-code .decorator {
+  color: #af00db;
+}
+
+.python-code .class-name {
+  color: #267f99;
+}
+
+.python-code .number {
+  color: #098658;
+}
