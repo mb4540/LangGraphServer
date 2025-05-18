@@ -14,7 +14,8 @@ import {
   DecisionNodeData,
   EndNodeData,
   EdgeData,
-  HumanPauseNodeData
+  HumanPauseNodeData,
+  SubgraphNodeData
 } from '@/utils/schemaUtils';
 
 const DetailPanel: React.FC = () => {
@@ -2096,25 +2097,172 @@ const DetailPanel: React.FC = () => {
         
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Target</label>
-          <div className="p-2 bg-gray-50 rounded border border-gray-200 text-gray-600 text-sm">{selectedEdge.target}</div>
-        </div>
-        
-        {selectedEdge.sourceHandle && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Source Handle</label>
-            <div className="p-2 bg-gray-50 rounded border border-gray-200 text-gray-600 text-sm">{selectedEdge.sourceHandle}</div>
           </div>
-        )}
-        
-        {selectedEdge.targetHandle && (
+          
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Target Handle</label>
-            <div className="p-2 bg-gray-50 rounded border border-gray-200 text-gray-600 text-sm">{selectedEdge.targetHandle}</div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Graph ID</label>
+            <Controller
+              name="graphId"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  type="text"
+                  placeholder="graph-12345"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  onBlur={(e) => {
+                    field.onBlur();
+                    handleFieldBlur('graphId', e.target.value);
+                  }}
+                />
+              )}
+            />
+            {errors.graphId && (
+              <span className="text-red-500 text-xs">{errors.graphId.message as string}</span>
+            )}
+            <p className="text-xs text-gray-500 mt-1">
+              Unique identifier for the graph to use as a subgraph
+            </p>
           </div>
-        )}
-      </>
-    );
-  };
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Version</label>
+            <Controller
+              name="version"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  type="text"
+                  placeholder="latest"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  onBlur={(e) => {
+                    field.onBlur();
+                    handleFieldBlur('version', e.target.value || 'latest');
+                  }}
+                />
+              )}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Graph version to use, defaults to 'latest'
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Input Mapping</label>
+            <Controller
+              name="inputMapping"
+              control={control}
+              render={({ field }) => {
+                // Convert the mapping object to a string for editing
+                const mappingString = field.value ? 
+                  Object.entries(field.value)
+                    .map(([key, value]) => `${key}: ${value}`)
+                    .join('\n') : '';
+                    
+                return (
+                  <textarea
+                    value={mappingString}
+                    rows={4}
+                    placeholder="subgraphKey: parentKey\nanotherKey: anotherParentKey"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    onChange={(e) => {
+                      // Convert the string back to an object
+                      const lines = e.target.value.split('\n');
+                      const mapping = {};
+                      
+                      lines.forEach(line => {
+                        const [key, value] = line.split(':').map(part => part.trim());
+                        if (key && value) {
+                          mapping[key] = value;
+                        }
+                      });
+                      
+                      field.onChange(mapping);
+                    }}
+                    onBlur={(e) => {
+                      field.onBlur();
+                      // Convert the string back to an object for storage
+                      const lines = e.target.value.split('\n');
+                      const mapping = {};
+                      
+                      lines.forEach(line => {
+                        const [key, value] = line.split(':').map(part => part.trim());
+                        if (key && value) {
+                          mapping[key] = value;
+                        }
+                      });
+                      
+                      handleFieldBlur('inputMapping', mapping);
+                    }}
+                  />
+                );
+              }}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Map parent graph keys to subgraph input keys (one per line, format: subgraphKey: parentKey)
+            </p>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Output Mapping</label>
+            <Controller
+              name="outputMapping"
+              control={control}
+              render={({ field }) => {
+                // Convert the mapping object to a string for editing
+                const mappingString = field.value ? 
+                  Object.entries(field.value)
+                    .map(([key, value]) => `${key}: ${value}`)
+                    .join('\n') : '';
+                    
+                return (
+                  <textarea
+                    value={mappingString}
+                    rows={4}
+                    placeholder="parentKey: subgraphKey\nanotherParentKey: anotherSubgraphKey"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    onChange={(e) => {
+                      // Convert the string back to an object
+                      const lines = e.target.value.split('\n');
+                      const mapping = {};
+                      
+                      lines.forEach(line => {
+                        const [key, value] = line.split(':').map(part => part.trim());
+                        if (key && value) {
+                          mapping[key] = value;
+                        }
+                      });
+                      
+                      field.onChange(mapping);
+                    }}
+                    onBlur={(e) => {
+                      field.onBlur();
+                      // Convert the string back to an object for storage
+                      const lines = e.target.value.split('\n');
+                      const mapping = {};
+                      
+                      lines.forEach(line => {
+                        const [key, value] = line.split(':').map(part => part.trim());
+                        if (key && value) {
+                          mapping[key] = value;
+                        }
+                      });
+                      
+                      handleFieldBlur('outputMapping', mapping);
+                    }}
+                  />
+                );
+              }}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Map subgraph output keys to parent graph keys (one per line, format: parentKey: subgraphKey)
+            </p>
+          </div>
+        </>
+      );
+    };
+  
   
   return (
     <div className="h-full flex flex-col bg-white shadow-inner overflow-auto">

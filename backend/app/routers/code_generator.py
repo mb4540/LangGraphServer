@@ -18,6 +18,7 @@ class NodePosition(BaseModel):
 
 class NodeData(BaseModel):
     label: str
+    # General fields
     model: Optional[str] = None
     temperature: Optional[float] = None
     maxTokens: Optional[int] = None
@@ -28,6 +29,11 @@ class NodeData(BaseModel):
     branches: Optional[List[str]] = None
     outputFormat: Optional[str] = None
     finalTransform: Optional[str] = None
+    # Subgraph specific fields
+    graphId: Optional[str] = None
+    version: Optional[str] = None
+    inputMapping: Optional[Dict[str, str]] = None
+    outputMapping: Optional[Dict[str, str]] = None
 
 class Node(BaseModel):
     id: str
@@ -70,6 +76,7 @@ from langgraph.checkpoint import Checkpoint
 from app.utils.tool_helpers import create_tool_executor
 from app.utils.tool_utils import get_tool_by_name, collect_available_tools
 from app.utils.memory_utils import read_memory, write_memory
+from app.utils.subgraph_utils import execute_subgraph, get_graph_data
 
 # LangChain imports
 from langchain_openai import ChatOpenAI
@@ -904,8 +911,6 @@ def handle_timeout(state, on_timeout, default_result, node_id):
         }
     
 {% endif %}
-
-{% if node.type == 'humanPauseNode' %}
 # Human-in-the-loop node that pauses for intervention
 from app.utils.human_pause_utils import human_pause
 
@@ -955,40 +960,81 @@ def {{ node.id|replace('-', '_') }}(state: GraphState) -> Dict[str, str]:
 {% endif %}
 
 {% if node.type == 'subgraphNode' %}
-# Import the subgraph module
-# This would need to be customized based on where subgraphs are stored
-try:
-    # Try to import the subgraph by ID
-    from subgraphs import {{ node.data.graphId|replace('-', '_') }}
-    
-    # Create a node that will invoke the subgraph
-    @graph.node
-    def {{ node.id|replace('-', '_') }}(state: GraphState) -> Dict[str, Any]:
-        """{{ node.data.label }} - Subgraph node that encapsulates a complete graph"""
+@graph.node
+def {{ node.id|replace('-', '_') }}(state: GraphState) -> Dict[str, Any]:
+    """{{ node.data.label }} - Subgraph node that encapsulates a complete graph"""
+    try:
         # Prepare the input for the subgraph
         subgraph_input = {}
         
         # Map inputs if specified
         {% if node.data.inputMapping %}
-        for subgraph_key, main_key in {{ node.data.inputMapping }}.items():
+        input_mapping = {{ node.data.inputMapping }}
+        for subgraph_key, main_key in input_mapping.items():
             # Extract the value from the main graph state
             if main_key in state:
                 subgraph_input[subgraph_key] = state[main_key]
         {% else %}
-        # Default: pass the current state as is
-        subgraph_input = state
+        # Default: pass through the input
+        if 'input' in state:
+            subgraph_input['input'] = state['input']
         {% endif %}
         
-        # Invoke the subgraph
-        subgraph_result = {{ node.data.graphId|replace('-', '_') }}.run_graph(subgraph_input)
+        # Add context from parent graph to subgraph state
+        if 'context' in state:
+            subgraph_input['context'] = state['context']
+        
+        # Execute the subgraph with the prepared state
+        subgraph_result = execute_subgraph(
+            graph_id="{{ node.data.graphId }}",
+            version="{{ node.data.version|default('latest') }}",
+            input_state=subgraph_input
+        )
+        
+        # Prepare the result
+        result = {}
         
         # Map outputs if specified
         {% if node.data.outputMapping %}
-        result = {}
-        for main_key, subgraph_key in {{ node.data.outputMapping }}.items():
+        output_mapping = {{ node.data.outputMapping }}
+        for main_key, subgraph_key in output_mapping.items():
             # Extract the value from the subgraph result
             if subgraph_key in subgraph_result:
                 result[main_key] = subgraph_result[subgraph_key]
+        {% else %}
+        # Default: pass through the output
+        if 'output' in subgraph_result:
+            result['output'] = subgraph_result['output']
+        {% endif %}
+        
+        # Track any errors from subgraph
+        if 'errors' in subgraph_result:
+            if 'errors' not in state:
+                state['errors'] = []
+            state['errors'].extend(subgraph_result['errors'])
+        
+        # Return a successful result
+        return {
+            **result,
+            'success': True
+        }
+    except Exception as e:
+        # Handle errors during subgraph execution
+        error_info = {
+            'node_id': '{{ node.id }}',
+            'error': str(e),
+            'type': 'subgraph_execution_error'
+        }
+        
+        if 'errors' not in state:
+            state['errors'] = []
+        state['errors'].append(error_info)
+        
+        # Route to error path
+        return {
+            'error': str(e),
+            'success': False
+        }
         return result
         {% else %}
         # Default: return the subgraph result as is

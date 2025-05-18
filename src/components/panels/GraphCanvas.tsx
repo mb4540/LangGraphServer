@@ -39,6 +39,7 @@ import LoopNode from '../nodes/LoopNode';
 import ErrorRetryNode from '../nodes/ErrorRetryNode';
 import TimeoutGuardNode from '../nodes/TimeoutGuardNode';
 import HumanPauseNode from '../nodes/HumanPauseNode';
+import SubgraphNode from '../nodes/SubgraphNode';
 
 // JSON Import/Export Modal
 import JSONModal from '../modals/JSONModal';
@@ -59,6 +60,7 @@ const nodeTypes: NodeTypes = {
   errorRetryNode: ErrorRetryNode,
   timeoutGuardNode: TimeoutGuardNode,
   humanPauseNode: HumanPauseNode,
+  subgraphNode: SubgraphNode,
 };
 
 // Node palette items

@@ -10,6 +10,7 @@ const nodeTypes = [
   { type: 'condition', label: 'Condition', description: 'Conditional Logic' },
   { type: 'input', label: 'Input', description: 'Graph Input' },
   { type: 'output', label: 'Output', description: 'Graph Output' },
+  { type: 'subgraph', label: 'Subgraph', description: 'Nested Graph Component' },
 ];
 
 export default function NodePanel({ onAddNode }: NodePanelProps) {

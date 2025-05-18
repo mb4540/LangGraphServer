@@ -224,6 +224,24 @@ export const nodeTypeToSchema: Record<string, z.ZodObject<any>> = {
   customNode: customNodeSchema,
 };
 
+export enum NodeType {
+  START = 'startNode',
+  END = 'endNode',
+  LLM = 'llmNode',
+  AGENT = 'agentNode',
+  TOOL = 'toolNode',
+  MEMORY_READ = 'memoryReadNode',
+  MEMORY_WRITE = 'memoryWriteNode',
+  DECISION = 'decisionNode',
+  PARALLEL_FORK = 'parallelForkNode',
+  PARALLEL_JOIN = 'parallelJoinNode',
+  LOOP = 'loopNode',
+  ERROR_RETRY = 'errorRetryNode',
+  TIMEOUT_GUARD = 'timeoutGuardNode',
+  HUMAN_PAUSE = 'humanPauseNode',
+  SUBGRAPH = 'subgraphNode',
+}
+
 // Function to get the schema for a node type
 export function getSchemaForNodeType(nodeType: string): z.ZodObject<any> {
   return nodeTypeToSchema[nodeType] || baseNodeSchema;
@@ -236,109 +254,114 @@ export function getEdgeSchema(): z.ZodObject<any> {
 
 // Edge validation rules
 export function validateEdgeConnection(sourceType: string, targetType: string, sourceHandle?: string, targetHandle?: string): boolean {
-  // START nodes must not be the target of any edge
-  if (targetType === 'startNode') {
-    return false; // START nodes cannot have incoming edges
+  // START nodes must have exactly one outbound connection and no inbound connections
+  if (sourceType === NodeType.START) {
+    return targetType !== NodeType.START; // START can connect to anything except another START
   }
   
-  // START node can connect to any node type except itself
-  if (sourceType === 'startNode') {
-    return targetType !== 'startNode'; // Prevent self-loops
+  if (targetType === NodeType.START) {
+    return false; // Nothing can connect to START
   }
   
-  // END node cannot have outgoing edges
-  if (sourceType === 'endNode') {
-    return false;
+  // END nodes cannot have outbound connections
+  if (sourceType === NodeType.END) {
+    return false; // END cannot connect to anything
   }
   
-  // Loop node specific validation
-  if (sourceType === 'loopNode') {
-    // Check if we're using specific handle for loop.exit or loop.continue
-    if (sourceHandle) {
-      // Exit handle can connect to any node except START
-      if (sourceHandle === 'loop.exit') {
-        return targetType !== 'startNode';
-      }
-      
-      // Continue handle should only connect to nodes that aren't END nodes
-      // This is what creates the loop
-      if (sourceHandle === 'loop.continue') {
-        return targetType !== 'endNode';
-      }
+  // Only specific handles can connect to specific targets based on node type
+  
+  // For Decision Nodes, validate based on the sourceHandle (branch name)
+  if (sourceType === NodeType.DECISION && sourceHandle) {
+    // Any branch from a decision node can connect to any other node except START
+    return targetType !== NodeType.START;
+  }
+  
+  // Parallel Fork nodes can connect to any node type except START, based on the branch handle
+  if (sourceType === NodeType.PARALLEL_FORK && sourceHandle) {
+    return targetType !== NodeType.START;
+  }
+  
+  // Parallel Join nodes can receive from any node type except START and END
+  if (targetType === NodeType.PARALLEL_JOIN) {
+    return sourceType !== NodeType.START && sourceType !== NodeType.END;
+  }
+  
+  // Loop nodes have two handles: continue (for cycling) and exit (to break the loop)
+  if (sourceType === NodeType.LOOP) {
+    if (sourceHandle === 'continue') {
+      // Continue can connect to any node that could lead back to the loop
+      return targetType !== NodeType.START;
+    }
+    if (sourceHandle === 'exit') {
+      // Exit can connect to any node except START
+      return targetType !== NodeType.START;
     }
   }
   
-  // Error-Retry node specific validation
-  if (sourceType === 'errorRetryNode') {
-    if (sourceHandle) {
-      // should_retry handle should connect back to the node that might fail
-      // This creates the retry loop
-      if (sourceHandle === 'should_retry') {
-        return targetType !== 'startNode' && targetType !== 'endNode';
-      }
-      
-      // continue handle should connect to the next step when retries succeed or are exhausted
-      if (sourceHandle === 'continue') {
-        return targetType !== 'startNode';
-      }
+  // Error-Retry nodes have two handles: should_retry (to retry) and continue (when retries succeed or exhaust)
+  if (sourceType === NodeType.ERROR_RETRY) {
+    if (sourceHandle === 'should_retry') {
+      // Should retry typically connects to the node that was being retried
+      return targetType !== NodeType.START && targetType !== NodeType.END;
+    }
+    if (sourceHandle === 'continue') {
+      // Continue connects to the next step in the normal flow
+      return targetType !== NodeType.START;
     }
   }
   
-  // Timeout Guard node specific validation
-  if (sourceType === 'timeoutGuardNode') {
-    // If a specific handle is provided
-    if (sourceHandle) {
-      // normal handle should connect to regular next steps
-      if (sourceHandle === 'normal') {
-        return targetType !== 'startNode';
-      }
-      
-      // expired handle should connect to fallback logic when timeout occurs
-      if (sourceHandle === 'expired') {
-        return targetType !== 'startNode';
-      }
+  // Timeout Guard nodes have two handles: normal (within timeout) and expired (timeout occurred)
+  if (sourceType === NodeType.TIMEOUT_GUARD) {
+    if (sourceHandle === 'normal') {
+      // Normal execution path
+      return targetType !== NodeType.START;
+    }
+    if (sourceHandle === 'expired') {
+      // Timeout path - can go to error handlers or fallbacks
+      return targetType !== NodeType.START;
     }
   }
   
-  // Human-Pause node specific validation
-  if (sourceType === 'humanPauseNode') {
-    // If a specific handle is provided
-    if (sourceHandle) {
-      // continue handle connects to the normal flow after human intervention
-      if (sourceHandle === 'continue') {
-        return targetType !== 'startNode';
-      }
-      
-      // skip handle connects to alternative flow when paused execution is skipped
-      if (sourceHandle === 'skip') {
-        return targetType !== 'startNode';
-      }
+  // Human-Pause nodes have two handles: continue (human provided input) and skip (timeout/skipped)
+  if (sourceType === NodeType.HUMAN_PAUSE) {
+    if (sourceHandle === 'continue') {
+      // Normal path after human input
+      return targetType !== NodeType.START;
+    }
+    if (sourceHandle === 'skip') {
+      // Skip path when timeout or explicitly skipped
+      return targetType !== NodeType.START;
     }
   }
   
-  // Prevent direct cycles (self-loops) for most nodes
+  // Subgraph nodes have two handles: success (normal execution) and error (for error handling)
+  if (sourceType === NodeType.SUBGRAPH) {
+    if (sourceHandle === 'success') {
+      // Success can connect to any node type except START
+      return targetType !== NodeType.START;
+    }
+    if (sourceHandle === 'error') {
+      // Error can connect to error handlers or other fallback paths
+      return targetType !== NodeType.START;
+    }
+  }
+  
   // We only allow cycles through specific handles
   if (sourceType === targetType) {
-    // Allow loop.continue handle for loop nodes
-    if (sourceType === 'loopNode' && sourceHandle === 'loop.continue') {
+    // Allow specific handles for loop nodes
+    if (sourceType === NodeType.LOOP && sourceHandle === 'continue') {
       return true;
     }
-    // Allow should_retry handle for error retry nodes
-    if (sourceType === 'errorRetryNode' && sourceHandle === 'should_retry') {
+    // Allow specific handles for error retry nodes
+    if (sourceType === NodeType.ERROR_RETRY && sourceHandle === 'should_retry') {
       return true;
     }
     // Prevent other self-loops
     return false;
   }
   
-  // Parallel Fork must have at least two outgoing edges
-  // This is handled in the graph validation logic, not in this edge validation function
-  
-  // Parallel Join must have at least two incoming edges
-  // This is handled in the graph validation logic, not in this edge validation function
-  
-  // All other connections are allowed by default
-  return true;
+  // Default: Allow connections between most nodes
+  return targetType !== NodeType.START;
 }
 
 // Types derived from the schemas
