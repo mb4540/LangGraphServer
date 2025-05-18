@@ -1,7 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import code_generator, websockets
+from app.routers import code_generator, websockets, projects
+from app.models.database import init_db
 
 app = FastAPI(
     title="LangGraph Server",
@@ -21,6 +22,12 @@ app.add_middleware(
 # Include routers
 app.include_router(code_generator.router, prefix="/api")
 app.include_router(websockets.router, prefix="/api")
+app.include_router(projects.router, prefix="/api")
+
+@app.on_event("startup")
+async def startup_event():
+    # Initialize the database
+    init_db()
 
 
 @app.get("/")
