@@ -1,0 +1,41 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [ "main", "master" ] # Adjust if your main branch has a different name
+    paths:
+      - 'apps/frontend/**'
+      - 'packages/common/**' # If common package changes, frontend might be affected
+      - '.github/workflows/frontend-ci.yml'
+  pull_request:
+    branches: [ "main", "master" ]
+    paths:
+      - 'apps/frontend/**'
+      - 'packages/common/**'
+      - '.github/workflows/frontend-ci.yml'
+
+jobs:
+  test-frontend:
+    name: Test Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9 # Or your specific PNPM version from root package.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Or your specific Node.js version
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Vitest tests for frontend
+        run: pnpm --filter frontend test

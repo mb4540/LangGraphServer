@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# Load nvm and use the specified Node.js version
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+# Use Node.js v20 (same as .nvmrc)
+nvm use 20 > /dev/null 2>&1 || echo "Warning: Node.js v20 not activated"
+
+# Run the pre-commit hook command
+pnpm test

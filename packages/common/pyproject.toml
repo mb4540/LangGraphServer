@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "langgraph_schemas"
+version = "0.1.0"
+description = "Shared Pydantic models for LangGraph Workflow Builder"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "pydantic>=2.0,<3.0"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/mb4540/LangGraphServer" # Using the memory for repo URL

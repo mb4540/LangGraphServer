@@ -1,0 +1,28 @@
+{
+  "name": "langgraph-workflow-builder",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Monorepo for the LangGraph Workflow Builder",
+  "scripts": {
+    "dev": "pnpm --filter \"./apps/*\" --parallel dev",
+    "dev:all": "concurrently \"pnpm --filter frontend dev\" \"pnpm dev:backend\"",
+    "dev:backend": "cd apps/backend && uvicorn main:app --reload --host 0.0.0.0 --port 8000",
+    "build": "pnpm --filter \"./packages/*\" build",
+    "lint": "pnpm --filter \"./packages/*\" lint && eslint . --ext .ts,.tsx,.js",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,yaml}\"",
+    "test": "pnpm --filter \"./{apps,packages}/*\" --parallel test",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.0.0",
+    "@commitlint/config-conventional": "^19.0.0",
+    "@types/node": "^22.15.18",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.57.0",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.2",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.5"
+  },
+  "packageManager": "pnpm@9.0.0"
+}
