@@ -489,8 +489,26 @@ def {{ node.id|replace('-', '_') }}(state: GraphState) -> Dict[str, str]:
 def {{ node.id|replace('-', '_') }}(state: GraphState) -> Dict[str, Any]:
     """{{ node.data.label }} - Parallel Fork node that fans-out to concurrent branches"""
     # This node splits execution into parallel branches
-    # In LangGraph, we handle this by returning the same state
-    # and then configuring multiple outbound edges
+    # In LangGraph, we handle this by returning the same state to all outgoing branches
+    # The system will execute all outgoing branches concurrently
+    
+    # You can pre-process the state here if needed before sending to parallel branches
+    # For example, you might want to prepare specific inputs for each branch
+    {% if node.data.description %}
+    # Description: {{ node.data.description }}
+    {% endif %}
+    
+    # Log that we're entering parallel execution
+    print(f"Executing parallel branches from fork node {node.id}")
+    
+    # Initialize parallel_context if it doesn't exist
+    if 'parallel_context' not in state:
+        state['parallel_context'] = {}
+    
+    # Add fork node ID to context to help with debugging
+    state['parallel_context']['fork_node_id'] = "{{ node.id }}"
+    
+    # Minimum branches configured: {{ node.data.minBranches|default(2) }}
     return state
 {% endif %}
 
@@ -504,21 +522,68 @@ def {{ node.id|replace('-', '_') }}(state: GraphState) -> Dict[str, Any]:
     
     # Implement custom merge strategy if specified
     {% if node.data.mergeStrategy == 'custom' and node.data.customMerger %}
-    # Custom merger would be implemented here
-    # The implementation would depend on the specific requirements
+    # Use custom merger function defined by the user
+    custom_code = """{{ node.data.customMerger }}"""
+    
+    # Execute the custom merger code in a controlled environment
+    try:
+        # Create a local function from the custom code
+        local_vars = {}
+        exec(custom_code, {}, local_vars)
+        
+        # Get the custom_merger function defined in the code
+        if 'custom_merger' in local_vars and callable(local_vars['custom_merger']):
+            # Call the function with our parallel results
+            if 'parallel_results' in state:
+                merged_result = local_vars['custom_merger'](state.get('parallel_results', []))
+                return {**state, 'output': merged_result}
+            else:
+                print(f"Warning: No parallel_results found in state when using custom merger in {node.id}")
+        else:
+            print(f"Error: custom_merger function not defined in code for {node.id}")
+    except Exception as e:
+        print(f"Error executing custom merger code in {node.id}: {str(e)}")
+    
+    # Fallback to returning the state as is
     return state
     {% elif node.data.mergeStrategy == 'concat' %}
     # Concatenate results strategy
-    # This is a simple example of concatenating string outputs
     if 'parallel_results' in state:
+        # Handle different types of data appropriately
+        results = state['parallel_results']
+        
+        # If all results are strings or have string representations
         concatenated = '
-'.join([str(r) for r in state['parallel_results']])
+'.join([str(r) for r in results])
+        
+        # If all results are lists, concatenate them
+        if all(isinstance(r, list) for r in results):
+            combined_list = []
+            for r in results:
+                combined_list.extend(r)
+            return {**state, 'output': combined_list}
+            
         return {**state, 'output': concatenated}
     else:
+        print(f"Warning: No parallel_results found in state for concatenation in {node.id}")
         return state
     {% else %}
-    # Default merge strategy (just use the state as is)
-    return state
+    # Default merge strategy (merge dictionaries)
+    if 'parallel_results' in state:
+        results = state['parallel_results']
+        
+        # If results are dictionaries, merge them
+        if all(isinstance(r, dict) for r in results):
+            merged_dict = {}
+            for r in results:
+                merged_dict.update(r)
+            return {**state, 'output': merged_dict}
+        # Otherwise just return the state with results as-is
+        else:
+            return {**state, 'output': results}
+    else:
+        print(f"Warning: No parallel_results found in state for merging in {node.id}")
+        return state
     {% endif %}
 {% endif %}
 
@@ -762,6 +827,17 @@ def {{ node.id|replace('-', '_') }}(state: GraphState) -> Dict[str, Any]:
 {% endif %}
 {% endfor %}
 
+# Identify parallel fork and join nodes for edge handling
+{% set parallel_fork_nodes = [] %}
+{% set parallel_join_nodes = [] %}
+{% for node in nodes %}
+{% if node.type == 'parallelForkNode' %}
+{% do parallel_fork_nodes.append(node.id) %}
+{% elif node.type == 'parallelJoinNode' %}
+{% do parallel_join_nodes.append(node.id) %}
+{% endif %}
+{% endfor %}
+
 # Register nodes with the graph
 # For the nodes that haven't been registered in-place
 {% for node in nodes %}
@@ -817,17 +893,28 @@ graph.add_conditional_edges(
 {% endif %}
 
 {# Handle parallel fork edges #}
-{% elif 'parallelForkNode' in edge.source|string() %}
-# Parallel branch from {{ edge.source }} (Fork node) to {{ edge.target }}
-# In LangGraph, parallel branches can be created using branches parameter
-# Here, we're using a simple edge to represent the parallel execution
+{% elif edge.source in parallel_fork_nodes or (edge.sourceHandle and 'fork' in edge.sourceHandle) %}
+# Parallel branch edge from {{ edge.source }} (Fork node) to {{ edge.target }}
 graph.add_edge({{ edge.source|replace('-', '_') }}, {{ edge.target|replace('-', '_') }})
 
-{# Handle parallel join edges #}
-{% elif 'parallelJoinNode' in edge.target|string() %}
+{# Handle parallel join input edges #}
+{% elif edge.target in parallel_join_nodes or (edge.targetHandle and 'join' in edge.targetHandle) %}
 # Input to Parallel Join node from {{ edge.source }} to {{ edge.target }}
-# These edges represent inputs to the join node that will be merged
+# Add edge for parallel branch result that will be merged
 graph.add_edge({{ edge.source|replace('-', '_') }}, {{ edge.target|replace('-', '_') }})
+{% if not loop.last %}
+# This will collect results from all branches in parallel_results
+thread_annotated_edges = [
+  ("parallel_thread", [{{ edge.source|replace('-', '_') }}, {{ edge.target|replace('-', '_') }}]),
+]
+thread_config = {
+  "parallel_results": "append"  # Collect results in a list
+}
+if thread_annotated_edges and thread_config:
+  graph.set_edge_annotation(thread_annotated_edges, thread_config)
+{% endif %}
+
+{# Already handled by our parallel_fork_nodes and parallel_join_nodes code above #}
 
 {# Handle standard direct edges #}
 {% else %}

@@ -1195,16 +1195,193 @@ const DetailPanel: React.FC = () => {
             </div>
           </>
         );
+
+      case 'parallelForkNode':
+        return (
+          <>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Minimum Branches</label>
+              <Controller
+                name="minBranches"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    type="number"
+                    min="2"
+                    {...field}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value, 10);
+                      if (value >= 2) {
+                        field.onChange(value);
+                        handleFieldChange('minBranches', value);
+                      }
+                    }}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                )}
+              />
+              {errors.minBranches && (
+                <span className="text-red-500 text-xs">{errors.minBranches.message as string}</span>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Minimum number of concurrent branches (at least 2)
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <Controller
+                name="description"
+                control={control}
+                render={({ field }) => (
+                  <textarea
+                    {...field}
+                    rows={2}
+                    placeholder="Describe the purpose of this parallel fork node"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onBlur={(e) => {
+                      field.onBlur();
+                      handleFieldBlur('description', e.target.value);
+                    }}
+                  />
+                )}
+              />
+            </div>
+
+            <div className="p-3 bg-blue-50 rounded-md border border-blue-200 text-sm text-blue-700 mb-4">
+              <p className="font-medium mb-1">How to use Parallel Fork</p>
+              <ul className="list-disc list-inside text-xs space-y-1">
+                <li>Connect inputs to the top handle</li>
+                <li>Connect outputs from each bottom handle to different nodes</li>
+                <li>Each branch will execute concurrently</li>
+                <li>Use a Parallel Join node to merge results</li>
+              </ul>
+            </div>
+          </>
+        );
+        
+      case 'parallelJoinNode':
+        return (
+          <>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Merge Strategy</label>
+              <Controller
+                name="mergeStrategy"
+                control={control}
+                render={({ field }) => (
+                  <select
+                    {...field}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onChange={(e) => {
+                      field.onChange(e.target.value);
+                      handleFieldChange('mergeStrategy', e.target.value);
+                    }}
+                  >
+                    <option value="merge">Merge (combine objects)</option>
+                    <option value="concat">Concatenate (join text/lists)</option>
+                    <option value="custom">Custom (define a merger function)</option>
+                  </select>
+                )}
+              />
+              {errors.mergeStrategy && (
+                <span className="text-red-500 text-xs">{errors.mergeStrategy.message as string}</span>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                How to combine results from parallel branches
+              </p>
+            </div>
+
+            {watch('mergeStrategy') === 'custom' && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Custom Merger Function</label>
+                <Controller
+                  name="customMerger"
+                  control={control}
+                  render={({ field }) => (
+                    <textarea
+                      {...field}
+                      rows={4}
+                      placeholder="def custom_merger(results):
+    # Combine results here
+    return combined_result"
+                      className="w-full p-2 font-mono text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      onBlur={(e) => {
+                        field.onBlur();
+                        handleFieldBlur('customMerger', e.target.value);
+                      }}
+                    />
+                  )}
+                />
+                {errors.customMerger && (
+                  <span className="text-red-500 text-xs">{errors.customMerger.message as string}</span>
+                )}
+              </div>
+            )}
+
+            <div className="mb-4">
+              <Controller
+                name="waitForAll"
+                control={control}
+                render={({ field }) => (
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="waitForAllCheckbox"
+                      checked={field.value}
+                      onChange={(e) => {
+                        field.onChange(e.target.checked);
+                        handleFieldChange('waitForAll', e.target.checked);
+                      }}
+                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="waitForAllCheckbox" className="ml-2 block text-sm font-medium text-gray-700">
+                      Wait for all branches to complete
+                    </label>
+                  </div>
+                )}
+              />
+              <p className="text-xs text-gray-500 mt-1 ml-6">
+                If unchecked, the node will process each result as it arrives
+              </p>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <Controller
+                name="description"
+                control={control}
+                render={({ field }) => (
+                  <textarea
+                    {...field}
+                    rows={2}
+                    placeholder="Describe how this join node combines results"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onBlur={(e) => {
+                      field.onBlur();
+                      handleFieldBlur('description', e.target.value);
+                    }}
+                  />
+                )}
+              />
+            </div>
+
+            <div className="p-3 bg-indigo-50 rounded-md border border-indigo-200 text-sm text-indigo-700">
+              <p className="font-medium mb-1">How to use Parallel Join</p>
+              <ul className="list-disc list-inside text-xs space-y-1">
+                <li>Connect all parallel branches to the top handles</li>
+                <li>Results will be automatically combined using the selected merge strategy</li>
+                <li>Connect the bottom handle to the next step in your workflow</li>
+              </ul>
+            </div>
+          </>
+        );
         
       default:
-        return (
-          <div className="text-sm text-gray-500">
-            No specific properties for this node type.
-          </div>
-        );
+        // Generic node without specific fields
+        return <div className="italic text-gray-500">No additional settings for this node type.</div>;
     }
   };
-  
+
   // Render edge properties form
   const renderEdgeFields = () => {
     if (!selectedEdge) return null;

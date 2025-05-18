@@ -48,3 +48,49 @@ export const IconSwitch: React.FC<IconProps> = ({ className = 'w-6 h-6' }) => {
     </svg>
   );
 };
+
+export const IconSplit: React.FC<IconProps> = ({ className = 'w-6 h-6' }) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+      <polyline points="17 8 12 3 7 8"></polyline>
+      <line x1="12" y1="3" x2="12" y2="15"></line>
+      <path d="M8 12l-4 4" />
+      <path d="M16 12l4 4" />
+    </svg>
+  );
+};
+
+export const IconMerge: React.FC<IconProps> = ({ className = 'w-6 h-6' }) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M8 3v4a2 2 0 0 0 2 2h8a2 2 0 0 1 2 2v4"></path>
+      <polyline points="17 21 12 16 7 21"></polyline>
+      <line x1="12" y1="16" x2="12" y2="3"></line>
+      <path d="M3 12l5-5" />
+      <path d="M21 12l-5-5" />
+    </svg>
+  );
+};

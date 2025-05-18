@@ -34,6 +34,8 @@ import StartNode from '../nodes/StartNode';
 import AgentNode from '../nodes/AgentNode';
 import MemoryReadNode from '../nodes/MemoryReadNode';
 import MemoryWriteNode from '../nodes/MemoryWriteNode';
+import ParallelForkNode from '../nodes/ParallelForkNode';
+import ParallelJoinNode from '../nodes/ParallelJoinNode';
 
 // JSON Import/Export Modal
 import JSONModal from '../modals/JSONModal';
@@ -48,6 +50,8 @@ const nodeTypes: NodeTypes = {
   endNode: EndNode,
   memoryReadNode: MemoryReadNode,
   memoryWriteNode: MemoryWriteNode,
+  parallelForkNode: ParallelForkNode,
+  parallelJoinNode: ParallelJoinNode,
 };
 
 // Node palette items
@@ -84,6 +88,20 @@ const nodeTemplates = [
     label: 'Agent Node',
     description: 'LLM agent with tool calling',
     className: 'bg-purple-100 border-purple-500',
+  },
+
+  // Parallel Processing Nodes
+  {
+    type: 'parallelForkNode',
+    label: 'Parallel Fork',
+    description: 'Split into concurrent execution branches',
+    className: 'bg-blue-100 border-blue-500',
+  },
+  {
+    type: 'parallelJoinNode',
+    label: 'Parallel Join',
+    description: 'Merge results from parallel branches',
+    className: 'bg-indigo-100 border-indigo-500',
   },
   {
     type: 'toolNode',
