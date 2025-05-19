@@ -13,6 +13,7 @@ import useLayoutStore from '@/store/layoutStore';
 import ChatTester from '@/components/panels/ChatTester';
 import GraphCanvas from '@/components/panels/GraphCanvas';
 import DetailPanel from '@/components/panels/DetailPanel';
+import Header from '@/components/layout/Header';
 
 export default function App() {
   // Refs for imperative panel handling
@@ -62,8 +63,9 @@ export default function App() {
   }, [leftPaneSize, centerPaneSize, rightPaneSize, MIN_PANE_WIDTH]);
 
   return (
-    <div className="h-screen w-screen overflow-hidden">
-      <PanelGroup direction="horizontal" className="h-full">
+    <div className="h-screen w-screen overflow-hidden flex flex-col">
+      <Header />
+      <PanelGroup direction="horizontal" className="flex-grow">
         {/* Left Pane - Chat Tester */}
         <Panel 
           id="left-panel"
