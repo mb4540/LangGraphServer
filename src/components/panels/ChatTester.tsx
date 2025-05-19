@@ -70,7 +70,7 @@ const ChatTester: React.FC = () => {
       };
       
       // Send to backend for code generation
-      const codeGenResponse = await fetch('/api/generate_code', {
+      const codeGenResponse = await fetch('http://localhost:8000/api/generate_code', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -85,7 +85,7 @@ const ChatTester: React.FC = () => {
       const { code } = await codeGenResponse.json();
       
       // Now send the code to the compile endpoint
-      const compileResponse = await fetch('/api/compile', {
+      const compileResponse = await fetch('http://localhost:8000/api/compile', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -100,7 +100,7 @@ const ChatTester: React.FC = () => {
       const { compilation_id } = await compileResponse.json();
       
       // Now run the compiled graph
-      const runResponse = await fetch('/api/run', {
+      const runResponse = await fetch('http://localhost:8000/api/run', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -123,7 +123,7 @@ const ChatTester: React.FC = () => {
       setRunId(run_id);
       
       // Start WebSocket connection
-      const ws = new WebSocket(`/api/ws/chat?run_id=${run_id}`);
+      const ws = new WebSocket(`ws://localhost:8000/api/ws/chat?run_id=${run_id}`);
       
       ws.onopen = () => {
         setStatus('running');
